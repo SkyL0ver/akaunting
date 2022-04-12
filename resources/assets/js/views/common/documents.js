@@ -9,11 +9,11 @@ require('./../../bootstrap');
 import Vue from 'vue';
 
 import DashboardPlugin from './../../plugins/dashboard-plugin';
+import { setPromiseTimeout } from './../../plugins/functions';
 
 import Global from './../../mixins/global';
 
 import Form from './../../plugins/form';
-import Error from './../../plugins/error';
 import BulkAction from './../../plugins/bulk-action';
 
 // plugin setup
@@ -49,33 +49,69 @@ const app = new Vue({
             tax: false,
             discounts: [],
             tax_id: [],
-
             items: [],
+            selected_items:[],
             taxes: [],
             page_loaded: false,
             currencies: [],
+            min_due_date: false,
+            currency_symbol: {
+               "name":"US Dollar",
+               "code":"USD",
+               "rate":1,
+               "precision":2,
+               "symbol":"$",
+               "symbol_first":1,
+               "decimal_mark":".",
+               "thousands_separator":","
+            },
+            dropdown_visible: true,
+            dynamic_taxes: [],
         }
     },
 
     mounted() {
+        this.form.discount_type = 'percentage';
+
         if ((document.getElementById('items') != null) && (document.getElementById('items').rows)) {
             this.colspan = document.getElementById("items").rows[0].cells.length - 1;
         }
 
-        if (document_currencies) {
-            this.currencies = document_currencies;
+        if (!this.edit.status) {
+           this.dropdown_visible = false;
         }
+
+        this.currency_symbol.rate = this.form.currency_rate;
+
+        if (company_currency_code) {
+           let default_currency_symbol = null;
+
+           for (let symbol of this.currencies) {
+               if(symbol.code == company_currency_code) {
+                   default_currency_symbol = symbol.symbol;
+               }
+           }
+
+           this.currency_symbol.symbol = default_currency_symbol;
+        };
     },
 
     methods: {
+        onRefFocus(ref) {
+            let index = this.form.items.length - 1;  
+
+            this.$refs['items-' + index + '-'  + ref][0].focus();
+        },
+
         onCalculateTotal() {
-            let global_discount = this.form.discount;
+            let global_discount = parseFloat(this.form.discount);
             let discount_total = 0;
             let line_item_discount_total = 0;
-            let taxes = document_taxes;
+            let taxes = this.dynamic_taxes;
             let sub_total = 0;
             let totals_taxes = [];
             let grand_total = 0;
+            let inclusive_tax_total = 0;
 
             // items calculate
             this.items.forEach(function(item, index) {
@@ -88,7 +124,19 @@ const app = new Vue({
                 let line_discount_amount = 0;
 
                 if (item.discount) {
-                    line_discount_amount = item.total * (item.discount / 100);
+                    if (item.discount_type === 'percentage') {
+                        if (item.discount > 100) {
+                            item.discount = 100;
+                        }
+
+                        line_discount_amount = item.total * (item.discount / 100);
+                    } else {
+                        if (parseInt(item.discount) > item.price) {
+                            item.discount = item.price;
+                        }
+                        line_discount_amount = parseFloat(item.discount);
+                    }
+
                     item.discount_amount = line_discount_amount
 
                     item_discounted_total = item.total -= line_discount_amount;
@@ -96,12 +144,6 @@ const app = new Vue({
                 }
 
                 let item_discounted_total = item.total;
-
-                if (global_discount) {
-                    item_discounted_total = item.total - (item.total * (global_discount / 100));
-
-                    item_discount = global_discount;
-                }
 
                 // item tax calculate.
                 if (item.tax_ids) {
@@ -165,16 +207,17 @@ const app = new Vue({
                             inclusive_total += inclusive.tax_rate;
 
                             // tax price
-                            item.tax_ids[inclusive.tax_index].price = item.grand_total- (item.grand_total / (1 + inclusive.tax_rate / 100));
+                            item.tax_ids[inclusive.tax_index].price = item.grand_total - (item.grand_total / (1 + inclusive.tax_rate / 100));
 
                             totals_taxes = this.calculateTotalsTax(totals_taxes, inclusive.tax_id, inclusive.tax_name, item.tax_ids[inclusive.tax_index].price);
                         }, this);
 
-                        let item_base_rate = item.grand_total / (1 + inclusive_total / 100);
-
+                        let item_base_rate = parseFloat(item.grand_total / (1 + inclusive_total / 100));
                         //item.grand_total = item.grand_total + item_base_rate;
 
-                        item.total = item_base_rate + item_discount;
+                        item.total = item_base_rate;
+
+                        inclusive_tax_total += parseFloat(item.grand_total - item.total);
                     }
 
                     if (compounds.length) {
@@ -191,7 +234,6 @@ const app = new Vue({
                         item.grand_total += price;
                     }
                 }
-
 
                 // set item total
                 if (item.discount) {
@@ -213,11 +255,15 @@ const app = new Vue({
 
             // Apply discount to total
             if (global_discount) {
-                discount_total = sub_total * (global_discount / 100);
+                if (this.form.discount_type === 'percentage') {
+                    discount_total = parseFloat(sub_total + inclusive_tax_total) * (global_discount / 100);
+                } else {
+                    discount_total = global_discount;
+                }
 
                 this.totals.discount = discount_total;
 
-                grand_total = sub_total - (sub_total * (global_discount / 100));
+                grand_total -= discount_total;
             }
 
             this.totals.item_discount = line_item_discount_total;
@@ -227,7 +273,7 @@ const app = new Vue({
 
             this.form.items.forEach(function(form_item, form_index) {
                 let item = this.items[form_index];
-                
+
                 for (const [key, value] of Object.entries(item)) {
                     if (key == 'add_tax' || key == 'tax_ids' || key == 'add_discount') {
                         continue
@@ -238,6 +284,8 @@ const app = new Vue({
                     }
                 }
             }, this);
+
+            this.currencyConversion();
         },
 
         calculateTotalsTax(totals_taxes, id, name, price) {
@@ -260,11 +308,17 @@ const app = new Vue({
             return totals_taxes;
         },
 
-        // Select Item added form
-        onSelectedItem(item) {
+        onSelectedItem(item){
+            this.onAddItem(item);
+        },
+
+        // addItem to list
+        onAddItem(payload) {
+            let { item, itemType } = payload;
+            let inputRef = `${itemType === 'newItem' ? 'name' : 'description'}`; // indication for which input to focus first
             let total = 1 * item.price;
             let item_taxes = [];
-
+            
             if (item.tax_ids) {
                 item.tax_ids.forEach(function (tax_id, index) {
                     if (this.taxes.includes(tax_id)) {
@@ -310,6 +364,10 @@ const app = new Vue({
             });
 
             setTimeout(function() {
+                this.onRefFocus(inputRef);
+            }.bind(this), 100);
+
+            setTimeout(function() {
                 this.onCalculateTotal();
             }.bind(this), 800);
         },
@@ -321,7 +379,7 @@ const app = new Vue({
 
             let selected_tax;
 
-            document_taxes.forEach(function(tax) {
+            this.dynamic_taxes.forEach(function(tax) {
                 if (tax.id == this.tax_id) {
                     selected_tax = tax;
                 }
@@ -356,16 +414,35 @@ const app = new Vue({
         },
 
         onAddLineDiscount(item_index) {
+            this.items[item_index].discount_type = 'percentage';
             this.items[item_index].add_discount = true;
+        },
+
+        onChangeDiscountType(type) {
+            this.form.discount_type = type;
+            this.onCalculateTotal();
+        },
+
+        onChangeLineDiscountType(item_index, type) {
+            this.items[item_index].discount_type = type;
+            this.onCalculateTotal();
         },
 
         onAddTotalDiscount() {
             let discount = document.getElementById('pre-discount').value;
 
-            if (discount < 0) {
-                discount = 0;
-            } else if (discount > 100) {
-                discount = 100;
+            if (this.form.discount_type === 'percentage') {
+                if (discount < 0) {
+                    discount = 0;
+                } else if (discount > 100) {
+                    discount = 100;
+                }
+            } else {
+                if (discount < 0) {
+                    discount = 0;
+                } else if (discount > this.totals.sub) {
+                    discount = this.totals.sub;
+                }
             }
 
             document.getElementById('pre-discount').value = discount;
@@ -438,6 +515,7 @@ const app = new Vue({
                         methods: {
                             onSubmit(event) {
                                 this.form = event;
+
                                 this.form.response = {};
 
                                 this.loading = true;
@@ -520,6 +598,11 @@ const app = new Vue({
 
         // Change currency get money
         onChangeCurrency(currency_code) {
+            if (this.edit.status && this.edit.currency <= 2) {
+                this.edit.currency++;
+                return;
+            }
+
             if (!this.currencies.length) {
                 let currency_promise = Promise.resolve(window.axios.get((url + '/settings/currencies')));
 
@@ -529,7 +612,7 @@ const app = new Vue({
                     }
                 })
                 .catch(error => {
-                    this.onChangeCurrency();
+                    this.onChangeCurrency(currency_code);
                 });
             }
 
@@ -539,9 +622,31 @@ const app = new Vue({
 
                     this.form.currency_code = currency.code;
                     this.form.currency_rate = currency.rate;
+
+                    this.currencyConversion();
+                }
+
+                if (company_currency_code == currency.code) {
+                   this.currency_symbol = currency;
                 }
             }, this);
         },
+
+        setDueMinDate(date) {
+            this.min_due_date = date;
+        },
+
+        currencyConversion() {
+            setTimeout(() => {
+                if (document.querySelectorAll('.js-conversion-input')) {
+                    let currency_input = document.querySelectorAll('.js-conversion-input');
+
+                    for(let input of currency_input) {
+                        input.setAttribute('size', input.value.length);
+                    }
+                }
+            }, 250);
+        }
     },
 
     created() {
@@ -549,6 +654,7 @@ const app = new Vue({
 
         if (typeof document_items !== 'undefined' && document_items) {
             this.edit.status = true;
+            this.edit.currency = 1;
 
             document_items.forEach(function(item) {
                 // form set item
@@ -560,6 +666,7 @@ const app = new Vue({
                     price: (item.price).toFixed(2),
                     tax_ids: item.tax_ids,
                     discount: item.discount_rate,
+                    discount_type: item.discount_type,
                     total: (item.total).toFixed(2)
                 });
 
@@ -597,6 +704,7 @@ const app = new Vue({
                     tax_ids: item_taxes,
                     add_discount: (item.discount_rate) ? true : false,
                     discount: item.discount_rate,
+                    discount_type: item.discount_type,
                     total: (item.total).toFixed(2),
                     // @todo
                     // invoice_item_checkbox_sample: [],
@@ -625,5 +733,21 @@ const app = new Vue({
         }
 
         this.page_loaded = true;
+
+        if (typeof document_currencies !== 'undefined' && document_currencies) {
+            this.currencies = document_currencies;
+
+            this.currencies.forEach(function (currency, index) {
+                if (document_default_currency == currency.code) {
+                    this.currency = currency;
+
+                    this.form.currency_code = currency.code;
+                }
+            }, this);
+        }
+
+        if (typeof document_taxes !== 'undefined' && document_taxes) {
+            this.dynamic_taxes = document_taxes;
+        }
     }
 });

@@ -28,7 +28,24 @@ class Transaction extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'type', 'account_id', 'paid_at', 'amount', 'currency_code', 'currency_rate', 'document_id', 'contact_id', 'description', 'category_id', 'payment_method', 'reference', 'parent_id'];
+    protected $fillable = [
+        'company_id',
+        'type',
+        'account_id',
+        'paid_at',
+        'amount',
+        'currency_code',
+        'currency_rate',
+        'document_id',
+        'contact_id',
+        'description',
+        'category_id',
+        'payment_method',
+        'reference',
+        'parent_id',
+        'created_from',
+        'created_by',
+    ];
 
     /**
      * The attributes that should be cast.
@@ -109,6 +126,11 @@ class Transaction extends Model
         return $this->belongsTo('App\Models\Auth\User', 'contact_id', 'id');
     }
 
+    public function parent()
+    {
+        return $this->belongsTo('App\Models\Banking\Transaction', 'parent_id');
+    }
+
     /**
      * Scope to only include contacts of a given type.
      *
@@ -122,7 +144,7 @@ class Transaction extends Model
             return $query;
         }
 
-        return $query->whereIn($this->table . '.type', (array) $types);
+        return $query->whereIn($this->qualifyColumn('type'), (array) $types);
     }
 
     /**
@@ -133,7 +155,7 @@ class Transaction extends Model
      */
     public function scopeIncome($query)
     {
-        return $query->whereIn($this->table . '.type', (array) $this->getIncomeTypes());
+        return $query->whereIn($this->qualifyColumn('type'), (array) $this->getIncomeTypes());
     }
 
     /**
@@ -144,7 +166,7 @@ class Transaction extends Model
      */
     public function scopeExpense($query)
     {
-        return $query->whereIn($this->table . '.type', (array) $this->getExpenseTypes());
+        return $query->whereIn($this->qualifyColumn('type'), (array) $this->getExpenseTypes());
     }
 
     /**
@@ -334,6 +356,16 @@ class Transaction extends Model
     }
 
     /**
+     * Check if the record is attached to a transfer.
+     *
+     * @return bool
+     */
+    public function getHasTransferRelationAttribute()
+    {
+        return (bool) (optional($this->category)->id == optional($this->category)->transfer());
+    }
+
+    /**
      * Get the title of type.
      *
      * @return string
@@ -355,11 +387,11 @@ class Transaction extends Model
         }
 
         if ($this->isIncome()) {
-            return !empty($this->document_id) ? 'invoices.show' : 'revenues.edit';
+            return !empty($this->document_id) ? 'invoices.show' : 'revenues.show';
         }
 
         if ($this->isExpense()) {
-            return !empty($this->document_id) ? 'bills.show' : 'payments.edit';
+            return !empty($this->document_id) ? 'bills.show' : 'payments.show';
         }
 
         return 'transactions.index';
@@ -373,6 +405,12 @@ class Transaction extends Model
     public function getRouteIdAttribute($value)
     {
         return !empty($value) ? $value : (!empty($this->document_id) ? $this->document_id : $this->id);
+    }
+
+    public function getTemplatePathAttribute($value = null)
+    {
+        $type_for_theme = ($this->type == 'income') ? 'sales.revenues.print_default' : 'purchases.payments.print_default';
+        return $value ?: $type_for_theme;
     }
 
     /**

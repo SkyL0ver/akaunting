@@ -6,8 +6,7 @@ use App\Events\Document\DocumentReminded;
 use App\Models\Common\Company;
 use App\Models\Document\Document;
 use App\Notifications\Purchase\Bill as Notification;
-use App\Utilities\Overrider;
-use Date;
+use App\Utilities\Date;
 use Illuminate\Console\Command;
 
 class BillReminder extends Command
@@ -37,22 +36,18 @@ class BillReminder extends Command
         config(['laravel-model-caching.enabled' => false]);
 
         // Get all companies
-        $companies = Company::enabled()->withCount('bills')->cursor();
+        $companies = Company::enabled()->with('bills')->cursor();
 
         foreach ($companies as $company) {
             // Has company bills
-            if (!$company->bills_count) {
+            if (!$company->bills->count()) {
                 continue;
             }
 
             $this->info('Sending bill reminders for ' . $company->name . ' company.');
 
-            // Set company id
-            session(['company_id' => $company->id]);
-
-            // Override settings and currencies
-            Overrider::load('settings');
-            Overrider::load('currencies');
+            // Set company
+            $company->makeCurrent();
 
             // Don't send reminders if disabled
             if (!setting('schedule.send_bill_reminder')) {
@@ -70,9 +65,7 @@ class BillReminder extends Command
             }
         }
 
-        // Unset company_id
-        session()->forget('company_id');
-        setting()->forgetAll();
+        Company::forgetCurrent();
     }
 
     protected function remind($day)
@@ -86,10 +79,10 @@ class BillReminder extends Command
         foreach ($bills as $bill) {
             try {
                 event(new DocumentReminded($bill, Notification::class));
-            } catch (\Exception | \Throwable | \Swift_RfcComplianceException | \Illuminate\Database\QueryException $e) {
+            } catch (\Throwable $e) {
                 $this->error($e->getMessage());
 
-                logger('Bill reminder:: ' . $e->getMessage());
+                report($e);
             }
         }
     }

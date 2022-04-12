@@ -9,55 +9,62 @@ use Recurr\Transformer\ArrayTransformerConfig;
 
 trait Recurring
 {
-    public function createRecurring()
+    public function createRecurring($request)
     {
-        $request = request();
-
-        if ($request->get('recurring_frequency', 'no') == 'no') {
+        if (empty($request['recurring_frequency']) || ($request['recurring_frequency'] == 'no')) {
             return;
         }
 
         $frequency = ($request['recurring_frequency'] != 'custom') ? $request['recurring_frequency'] : $request['recurring_custom_frequency'];
         $interval = (($request['recurring_frequency'] != 'custom') || ($request['recurring_interval'] < 1)) ? 1 : (int) $request['recurring_interval'];
-        $started_at = $request->get('paid_at') ?: $request->get('issued_at');
+        $started_at = !empty($request['paid_at']) ? $request['paid_at'] : $request['issued_at'];
+        $source = !empty($request['created_from']) ? $request['created_from'] : source_name();
+        $owner = !empty($request['created_by']) ? $request['created_by'] : user_id();
 
         $this->recurring()->create([
-            'company_id' => session('company_id'),
+            'company_id' => $this->company_id,
             'frequency' => $frequency,
             'interval' => $interval,
             'started_at' => $started_at,
             'count' => (int) $request['recurring_count'],
+            'created_from' => $source,
+            'created_by' => $owner,
         ]);
     }
 
-    public function updateRecurring()
+    public function updateRecurring($request)
     {
-        $request = request();
-
-        if ($request->get('recurring_frequency', 'no') == 'no') {
+        if (empty($request['recurring_frequency']) || ($request['recurring_frequency'] == 'no')) {
             $this->recurring()->delete();
             return;
         }
 
         $frequency = ($request['recurring_frequency'] != 'custom') ? $request['recurring_frequency'] : $request['recurring_custom_frequency'];
         $interval = (($request['recurring_frequency'] != 'custom') || ($request['recurring_interval'] < 1)) ? 1 : (int) $request['recurring_interval'];
-        $started_at = $request->get('paid_at') ?: $request->get('issued_at');
+        $started_at = !empty($request['paid_at']) ? $request['paid_at'] : $request['issued_at'];
 
         $recurring = $this->recurring();
+        $model_exists = $recurring->count();
 
-        if ($recurring->count()) {
-            $function = 'update';
-        } else {
-            $function = 'create';
-        }
-
-        $recurring->$function([
-            'company_id' => session('company_id'),
+        $data = [
+            'company_id' => $this->company_id,
             'frequency' => $frequency,
             'interval' => $interval,
             'started_at' => $started_at,
             'count' => (int) $request['recurring_count'],
-        ]);
+        ];
+
+        if ($model_exists) {
+            $recurring->update($data);
+        } else {
+            $source = !empty($request['created_from']) ? $request['created_from'] : source_name();
+            $owner = !empty($request['created_by']) ? $request['created_by'] : user_id();
+
+            $recurring->create(array_merge($data, [
+                'created_from' => $source,
+                'created_by' => $owner,
+            ]));
+        }
     }
 
     public function getRecurringSchedule($set_until_date = true)
@@ -80,13 +87,13 @@ trait Recurring
             ->setFreq($this->getRecurringRuleFrequency())
             ->setInterval($this->getRecurringRuleInterval());
 
-        if ($set_until_date) {
-            $rule->setUntil($this->getRecurringRuleUntilDate());
-        }
-
         // 0 means infinite
         if ($this->count != 0) {
             $rule->setCount($this->getRecurringRuleCount());
+        }
+
+        if ($set_until_date) {
+            $rule->setUntil($this->getRecurringRuleUntilDate());
         }
 
         return $rule;

@@ -13,6 +13,17 @@ class Settings extends ApiController
     use Helpers;
 
     /**
+     * Instantiate a new controller instance.
+     */
+    public function __construct()
+    {
+        // Add CRUD permission check
+        $this->middleware('permission:create-settings-settings')->only('create', 'store', 'duplicate', 'import');
+        $this->middleware('permission:read-settings-settings')->only('index', 'show', 'edit', 'export');
+        $this->middleware('permission:update-settings-settings')->only('update', 'enable', 'disable', 'destroy');
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return \Dingo\Api\Http\Response
@@ -39,7 +50,7 @@ class Settings extends ApiController
             $setting = Setting::where('key', $id)->first();
         }
 
-        return $this->response->item($setting, new Transformer());
+        return $this->item($setting, new Transformer());
     }
 
     /**
@@ -52,7 +63,7 @@ class Settings extends ApiController
     {
         $setting = Setting::create($request->all());
 
-        return $this->response->created(route('api.settings.show', $setting->id));
+        return $this->response->created(route('api.settings.show', $setting->id), $this->item($setting, new Transformer()));
     }
 
     /**
@@ -66,7 +77,7 @@ class Settings extends ApiController
     {
         $setting->update($request->all());
 
-        return $this->response->item($setting->fresh(), new Transformer());
+        return $this->item($setting->fresh(), new Transformer());
     }
 
     /**

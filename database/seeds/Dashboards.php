@@ -33,8 +33,19 @@ class Dashboards extends Seeder
         $this->dispatch(new CreateDashboard([
             'company_id' => $company_id,
             'name' => trans_choice('general.dashboards', 1),
-            'default_widgets' => true,
+            'custom_widgets' => [
+                'App\Widgets\TotalIncome',
+                'App\Widgets\TotalExpenses',
+                'App\Widgets\TotalProfit',
+                'App\Widgets\CashFlow',
+                'App\Widgets\IncomeByCategory',
+                'App\Widgets\ExpensesByCategory',
+                'App\Widgets\AccountBalance',
+                'App\Widgets\LatestIncome',
+                'App\Widgets\LatestExpenses',
+            ],
             'users' => $user_id,
+            'created_from' => 'core::seed',
         ]));
     }
 }

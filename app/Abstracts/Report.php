@@ -16,7 +16,8 @@ use App\Traits\Charts;
 use App\Traits\DateTime;
 use App\Traits\SearchString;
 use App\Utilities\Chartjs;
-use Date;
+use App\Utilities\Date;
+use App\Utilities\Export as ExportHelper;
 use Illuminate\Support\Str;
 
 abstract class Report
@@ -30,6 +31,8 @@ abstract class Report
     public $category = 'reports.income_expense';
 
     public $icon = 'fa fa-chart-pie';
+
+    public $has_money = true;
 
     public $year;
 
@@ -141,7 +144,7 @@ abstract class Report
                 $sum += is_array($total) ? array_sum($total) : $total;
             }
 
-            $total = money($sum, setting('default.currency'), true);
+            $total = $this->has_money ? money($sum, setting('default.currency'), true)->format() : $sum;
         } else {
             $total = trans('general.na');
         }
@@ -205,7 +208,7 @@ abstract class Report
 
     public function export()
     {
-        return \Excel::download(new Export($this->views['content'], $this), \Str::filename($this->model->name) . '.xlsx');
+        return ExportHelper::toExcel(new Export($this->views['content'], $this), $this->model->name);
     }
 
     public function setColumnWidth()
@@ -321,17 +324,23 @@ abstract class Report
 
     public function setTotals($items, $date_field, $check_type = false, $table = 'default', $with_tax = true)
     {
+        $group_field = $this->getSetting('group') . '_id';
+
         foreach ($items as $item) {
             // Make groups extensible
             $item = $this->applyGroups($item);
 
             $date = $this->getFormattedDate(Date::parse($item->$date_field));
 
-            $id_field = $this->getSetting('group') . '_id';
+            if (!isset($item->$group_field)) {
+                continue;
+            }
+
+            $group = $item->$group_field;
 
             if (
-                !isset($this->row_values[$table][$item->$id_field])
-                || !isset($this->row_values[$table][$item->$id_field][$date])
+                !isset($this->row_values[$table][$group])
+                || !isset($this->row_values[$table][$group][$date])
                 || !isset($this->footer_totals[$table][$date])
             ) {
                 continue;
@@ -342,15 +351,78 @@ abstract class Report
             $type = ($item->type === Document::INVOICE_TYPE || $item->type === 'income') ? 'income' : 'expense';
 
             if (($check_type == false) || ($type == 'income')) {
-                $this->row_values[$table][$item->$id_field][$date] += $amount;
+                $this->row_values[$table][$group][$date] += $amount;
 
                 $this->footer_totals[$table][$date] += $amount;
             } else {
-                $this->row_values[$table][$item->$id_field][$date] -= $amount;
+                $this->row_values[$table][$group][$date] -= $amount;
 
                 $this->footer_totals[$table][$date] -= $amount;
             }
         }
+    }
+
+    public function setArithmeticTotals($items, $date_field, $operator = 'add', $table = 'default', $amount_field = 'amount')
+    {
+        $group_field = $this->getSetting('group') . '_id';
+
+        $function = $operator . 'ArithmeticAmount';
+
+        foreach ($items as $item) {
+            // Make groups extensible
+            $item = $this->applyGroups($item);
+
+            $date = $this->getFormattedDate(Date::parse($item->$date_field));
+
+            if (!isset($item->$group_field)) {
+                continue;
+            }
+
+            $group = $item->$group_field;
+
+            if (
+                !isset($this->row_values[$table][$group])
+                || !isset($this->row_values[$table][$group][$date])
+                || !isset($this->footer_totals[$table][$date])
+            ) {
+                continue;
+            }
+
+            $amount = isset($item->$amount_field) ? $item->$amount_field : 1;
+
+            $this->$function($this->row_values[$table][$group][$date], $amount);
+            $this->$function($this->footer_totals[$table][$date], $amount);
+        }
+    }
+
+    public function addArithmeticAmount(&$current, $amount)
+    {
+        $current = $current + $amount;
+    }
+
+    public function subArithmeticAmount(&$current, $amount)
+    {
+        $current = $current - $amount;
+    }
+
+    public function mulArithmeticAmount(&$current, $amount)
+    {
+        $current = $current * $amount;
+    }
+
+    public function divArithmeticAmount(&$current, $amount)
+    {
+        $current = $current / $amount;
+    }
+
+    public function modArithmeticAmount(&$current, $amount)
+    {
+        $current = $current % $amount;
+    }
+
+    public function expArithmeticAmount(&$current, $amount)
+    {
+        $current = $current ** $amount;
     }
 
     public function applyFilters($model, $args = [])
@@ -394,7 +466,7 @@ abstract class Report
 
                     $start = $quarter->getStartDate()->format($this->getQuarterlyDateFormat($this->year));
                     $end = $quarter->getEndDate()->format($this->getQuarterlyDateFormat($this->year));
-                    
+
                     $formatted_date = $start . '-' . $end;
                 }
 
@@ -410,7 +482,7 @@ abstract class Report
 
     public function getUrl($action = 'print')
     {
-        $url = 'common/reports/' . $this->model->id . '/' . $action;
+        $url = company_id() . '/common/reports/' . $this->model->id . '/' . $action;
 
         $search = request('search');
 

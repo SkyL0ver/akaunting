@@ -45,6 +45,7 @@ class Document extends AbstractFactory
             'currency_rate' => '1',
             'notes' => $this->faker->text(5),
             'amount' => '0',
+            'created_from' => 'core::factory',
         ];
     }
 
@@ -130,8 +131,8 @@ class Document extends AbstractFactory
     public function received()
     {
         return $this->state([
-                                'status' => 'received',
-                            ]);
+            'status' => 'received',
+        ]);
     }
 
     /**
@@ -202,10 +203,9 @@ class Document extends AbstractFactory
     public function recurring()
     {
         return $this->state([
-            'recurring_frequency' => 'yes',
+            'recurring_frequency' => 'daily',
             'recurring_interval' => '1',
-            'recurring_custom_frequency' => $this->faker->randomElement(['monthly', 'weekly']),
-            'recurring_count' => '1',
+            'recurring_count' => '7',
         ]);
     }
 
@@ -245,7 +245,7 @@ class Document extends AbstractFactory
                     'quantity' => '1',
                     'price' => $amount,
                     'currency' => setting('default.currency'),
-                ]
+                ],
             ];
 
             return [
@@ -298,7 +298,7 @@ class Document extends AbstractFactory
                     'quantity' => '1',
                     'price' => $amount,
                     'currency' => $document->currency_code,
-                ]
+                ],
             ];
 
             $request = [

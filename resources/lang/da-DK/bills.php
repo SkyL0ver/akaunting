@@ -4,6 +4,7 @@ return [
 
     'bill_number'           => 'Fakturanummer',
     'bill_date'             => 'Fakturadato',
+    'bill_amount'           => 'Regningens beløb',
     'total_price'           => 'Total pris',
     'due_date'              => 'Forfaldsdato',
     'order_number'          => 'Ordrenummer',
@@ -30,7 +31,7 @@ return [
     'payments'              => 'Betalinger',
     'add_payment'           => 'Tilføj betaling',
     'mark_paid'             => 'Marker som betalt',
-    'mark_received'         => 'Modtagelse godkendt',
+    'mark_received'         => 'Marker som modtaget',
     'mark_cancelled'        => 'Marker som annulleret',
     'download_pdf'          => 'Download PDF',
     'send_mail'             => 'Send e-mail',
@@ -39,12 +40,12 @@ return [
     'make_payment'          => 'Opret betaling',
 
     'messages' => [
-        'draft'             => 'Dette er et <b>UDKAST</b> til faktura og vil først blive vist i oversigten, når den er afsendt.',
+        'draft'             => 'Dette er et <b>UDKAST</b> til en regning og vil først blive vist i oversigten, når den er markeret som modtaget.',
 
         'status' => [
             'created'       => 'Oprettet den :date',
             'receive' => [
-                'draft'     => 'Ikke sendt',
+                'draft'     => 'Ikke modtaget',
                 'received'  => 'Modtaget den :date',
             ],
             'paid' => [

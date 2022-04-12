@@ -14,10 +14,10 @@ class Company extends Component
      */
     public function render()
     {
-        $company = Model::find(session('company_id'));
+        $company = Model::find(company_id());
 
         $inputNameType = config('type.' . $this->type . '.route.parameter');
 
-        return view('components.documents.form.company', compact('company','inputNameType'));
+        return view('components.documents.form.company', compact('company', 'inputNameType'));
     }
 }

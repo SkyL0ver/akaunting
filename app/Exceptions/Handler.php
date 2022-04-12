@@ -5,8 +5,9 @@ namespace App\Exceptions;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -71,11 +72,13 @@ class Handler extends ExceptionHandler
     protected function unauthenticated($request, AuthenticationException $exception)
     {
         // Store the current url in the session
-        session(['url.intended' => $request->url()]);
+        if ($request->url() !== config('app.url')) {
+            session(['url.intended' => $request->url()]);
+        }
 
         return $request->expectsJson()
-                    ? response()->json(['message' => $exception->getMessage()], 401)
-                    : redirect()->guest($exception->redirectTo() ?? route('login'));
+            ? response()->json(['message' => $exception->getMessage()], 401)
+            : redirect()->to($exception->redirectTo() ?? route('login'));
     }
 
     private function handleExceptions($request, $exception)
@@ -123,6 +126,13 @@ class Handler extends ExceptionHandler
 
             // normal 500 view page feedback
             return response()->view('errors.500', [], 500);
+        }
+
+        if ($exception instanceof ThrottleRequestsException) {
+            // ajax 500 json feedback
+            if ($request->ajax()) {
+                return response()->json(['error' => $exception->getMessage()], 429);
+            }
         }
 
         return parent::render($request, $exception);

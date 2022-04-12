@@ -7,36 +7,35 @@ use App\Abstracts\Http\FormRequest;
 class Setting extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
-    public function authorize()
-    {
-        return true;
-    }
-
-    /**
      * Get the validation rules that apply to the request.
      *
      * @return array
      */
     public function rules()
     {
-        $name = 'nullable';
-        $email = 'nullable';
-        $logo = 'nullable';
+        $rules = [];
 
-        if ($this->request->get('_prefix', null) == 'company') {
-            $name = 'required|string';
-            $email = 'required|email';
-            $logo = 'mimes:' . config('filesystems.mimes', 'pdf,jpeg,jpg,png');
+        $prefix = $this->request->get('_prefix', null);
+
+        switch ($prefix) {
+            case 'company':
+                $rules = [
+                    'name' => 'required|string',
+                    'email' => 'required|email',
+                    'logo' => 'mimes:' . config('filesystems.mimes') . '|between:0,' . config('filesystems.max_size') * 1024 . '|dimensions:max_width=1000,max_height=1000',
+                ];
+
+                break;
+            case 'default':
+                $rules = [
+                    'currency' => 'required|string|currency',
+                    'locale' => 'required|string',
+                    'payment_method' => 'required|string',
+                ];
+
+                break;
         }
 
-        return [
-            'name' => $name,
-            'email' => $email,
-            'logo' => $logo,
-        ];
+        return $rules;
     }
 }

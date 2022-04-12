@@ -77,6 +77,12 @@ return [
         ],
     ],
 
+    'transfer' => [
+        'choose_template'   => 'Odaberite šablon prenosa',
+        'second'            => 'Drugi',
+        'third'             => 'Treći',
+    ],
+
     'default' => [
         'description'       => 'Zadani račun, valuta, jezik vaše tvrtke',
         'list_limit'        => 'Zapisa po stranici',
@@ -115,6 +121,7 @@ return [
             'invoice_payment_admin'     => 'Predložak primljenog plaćanja (poslano administratoru)',
             'bill_remind_admin'         => 'Predložak podsjetnika za račun (poslano administratoru)',
             'bill_recur_admin'          => 'Ponavljajući predložak računa (poslan administratoru)',
+            'revenue_new_customer'      => 'Obrazac primljenog prihoda (poslano kupcu)',
         ],
     ],
 

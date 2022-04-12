@@ -6,7 +6,9 @@ use App\Exports\Sales\Invoices as Export;
 use App\Jobs\Document\CreateDocument;
 use App\Models\Document\Document;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Tests\Feature\FeatureTestCase;
 
 class InvoicesTest extends FeatureTestCase
@@ -17,6 +19,18 @@ class InvoicesTest extends FeatureTestCase
             ->get(route('invoices.index'))
             ->assertStatus(200)
             ->assertSeeText(trans_choice('general.invoices', 2));
+    }
+
+    public function testItShouldSeeInvoiceShowPage()
+    {
+        $request = $this->getRequest();
+
+        $invoice = $this->dispatch(new CreateDocument($request));
+
+        $this->loginAs()
+            ->get(route('invoices.show', $invoice->id))
+            ->assertStatus(200)
+            ->assertSee($invoice->contact_email);
     }
 
     public function testItShouldSeeInvoiceCreatePage()
@@ -39,6 +53,47 @@ class InvoicesTest extends FeatureTestCase
 
         $this->assertDatabaseHas('documents', [
             'document_number' => $request['document_number'],
+        ]);
+    }
+
+    public function testItShouldCreateInvoiceWithAttachment()
+    {
+        Storage::fake('uploads');
+        Carbon::setTestNow(Carbon::create(2021, 05, 15));
+
+        $file = new UploadedFile(
+            base_path('public/img/empty_pages/invoices.png'),
+            'invoices.png',
+            'image/png',
+            null,
+            true
+        );
+
+        $request = $this->getRequest();
+        $request['attachment'] = [$file];
+
+        $this->loginAs()
+            ->post(route('invoices.store'), $request)
+            ->assertStatus(200);
+
+        $this->assertFlashLevel('success');
+
+        Storage::disk('uploads')->assertExists('2021/05/15/1/invoices/invoices.png');
+
+        $this->assertDatabaseHas('documents', [
+            'document_number' => $request['document_number']
+        ]);
+        $this->assertDatabaseHas('mediables', [
+            'mediable_type' => Document::class,
+            'tag'           => 'attachment',
+        ]);
+        $this->assertDatabaseHas('media', [
+            'disk'           => 'uploads',
+            'directory'      => '2021/05/15/1/invoices',
+            'filename'       => 'invoices',
+            'extension'      => 'png',
+            'mime_type'      => 'image/png',
+            'aggregate_type' => 'image',
         ]);
     }
 
@@ -129,33 +184,39 @@ class InvoicesTest extends FeatureTestCase
             ->get(route('invoices.export'))
             ->assertStatus(200);
 
+        \Excel::matchByRegex();
+
         \Excel::assertDownloaded(
-            \Str::filename(trans_choice('general.invoices', 2)) . '.xlsx',
+            '/' . \Str::filename(trans_choice('general.invoices', 2)) . '-\d{10}\.xlsx/',
             function (Export $export) use ($count) {
                 // Assert that the correct export is downloaded.
-                return $export->sheets()['invoices']->collection()->count() === $count;
+                return $export->sheets()[0]->collection()->count() === $count;
             }
         );
     }
 
     public function testItShouldExportSelectedInvoices()
     {
-        $count = 5;
-        $invoices = Document::factory()->invoice()->count($count)->create();
+        $create_count = 5;
+        $select_count = 3;
+
+        $invoices = Document::factory()->invoice()->count($create_count)->create();
 
         \Excel::fake();
 
         $this->loginAs()
             ->post(
                 route('bulk-actions.action', ['group' => 'sales', 'type' => 'invoices']),
-                ['handle' => 'export', 'selected' => [$invoices->random()->id]]
+                ['handle' => 'export', 'selected' => $invoices->take($select_count)->pluck('id')->toArray()]
             )
             ->assertStatus(200);
 
+        \Excel::matchByRegex();
+
         \Excel::assertDownloaded(
-            \Str::filename(trans_choice('general.invoices', 2)) . '.xlsx',
-            function (Export $export) {
-                return $export->sheets()['invoices']->collection()->count() === 1;
+            '/' . \Str::filename(trans_choice('general.invoices', 2)) . '-\d{10}\.xlsx/',
+            function (Export $export) use ($select_count) {
+                return $export->sheets()[0]->collection()->count() === $select_count;
             }
         );
     }

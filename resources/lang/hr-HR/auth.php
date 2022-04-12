@@ -24,13 +24,13 @@ return [
 
     'error' => [
         'self_delete'       => 'Pogreška: Nije moguće izbrisati sebe!',
-        'self_disable'      => 'Pogreška: Ne možete se onemogućiti!',
+        'self_disable'      => 'Pogreška: Ne možete sebe onemogućiti!',
         'no_company'        => 'Pogleška: Nema dodijeljene tvrtke za vaš račun. Obratite se administratoru sustava.',
     ],
 
     'failed'                => 'Ove vjerodajnice ne odgovaraju našim zapisima.',
-    'disabled'              => 'Ovaj račun je onemogućen. Molimo vas da se obratite administratoru sustava.',
     'throttle'              => 'Previše pokušaja prijave. Molim Vas pokušajte ponovno za :seconds sekundi.',
+    'disabled'              => 'Ovaj račun je onemogućen. Molimo vas da se obratite administratoru sustava.',
 
     'notification' => [
         'message_1'     => 'Primili ste ovaj e-mail jer smo zaprimili zahtjev za resetiranje lozinke za vaš račun.',

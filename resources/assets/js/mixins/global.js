@@ -119,6 +119,11 @@ export default {
             this.form.submit();
         },
 
+        // Form Async Submit
+        async onAsyncSubmit() {
+            await this.form.asyncSubmit();
+        },
+
         onHandleFileUpload(key, event) {
             this.form[key] = '';
             this.form[key] = event.target.files[0];
@@ -198,6 +203,8 @@ export default {
                                 if (response.data.redirect) {
                                     window.location.href = response.data.redirect;
                                 }
+
+                                this.$emit('deleted', response.data);
                             })
                             .catch(error => {
                                 this.success = false;
@@ -362,6 +369,33 @@ export default {
             });
         },
 
+        onDynamicFormParams(path, params) {
+            let data = {};
+
+            for (const [key, value] of Object.entries(params)) {
+                data[key] = eval(value);
+            }
+
+            axios.get(path, {
+                params: data
+            }).then(response => {
+                if (response.data.data) {
+                    let rows = response.data.data;
+
+                    if (!Array.isArray(rows)) {
+                        for (const [key, value] of Object.entries(rows)) {
+                            this.form[key] = value;
+                        }
+                    } else {
+                        rows.forEach(function (key, index) {
+                            this.form[index] = key;
+                        }, this);
+                    }
+                }
+            }).catch(error => {
+            });
+        },
+
         // Delete attachment file
         onDeleteFile(file_id, url, title, message, button_cancel, button_delete) {
             let file_data = {
@@ -444,10 +478,14 @@ export default {
             this.form.contact_tax_number = (contact.tax_number) ? contact.tax_number : '';
             this.form.contact_phone = (contact.phone) ? contact.phone : '';
             this.form.contact_address = (contact.address) ? contact.address : '';
+            this.form.contact_country = (contact.country) ? contact.country : '';
+            this.form.contact_state = (contact.state) ? contact.state : '';
+            this.form.contact_zip_code = (contact.zip_code) ? contact.zip_code : '';
+            this.form.contact_city = (contact.city) ? contact.city : '';
 
             let currency_code = (contact.currency_code) ? contact.currency_code : this.form.currency_code;
 
             this.onChangeCurrency(currency_code);
-        }
+        },
     }
 }

@@ -51,6 +51,9 @@ return [
     'templates'             => 'Template|Templates',
     'sales'                 => 'Sale|Sales',
     'purchases'             => 'Purchase|Purchases',
+    'notifications'         => 'Notification|Notifications',
+    'countries'             => 'Country|Countries',
+    'cities'                => 'Town / City|Towns / Cities',
 
     'welcome'               => 'Welcome',
     'banking'               => 'Banking',
@@ -72,6 +75,7 @@ return [
     'add_new'               => 'Add New',
     'add_income'            => 'Add Income',
     'add_expense'           => 'Add Expense',
+    'add_transfer'          => 'Add Transfer',
     'show'                  => 'Show',
     'edit'                  => 'Edit',
     'delete'                => 'Delete',
@@ -160,6 +164,10 @@ return [
     'recurring_and_more'    => 'Recurring and more..',
     'due_on'                => 'Due on',
     'amount_due'            => 'Amount due',
+    'financial_year'        => 'Financial Year',
+    'created'               => 'Created',
+    'state'                 => 'Province / State',
+    'zip_code'              => 'Postal / Zip Code',
 
     'card' => [
         'cards'                 => 'Card|Cards',

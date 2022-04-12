@@ -51,6 +51,9 @@ return [
     'templates'             => 'Predložak|Predlošci',
     'sales'                 => 'Prodaja|Prodaje',
     'purchases'             => 'Kupnja|Kupnje',
+    'notifications'         => 'Notifikacija|Notifikacije',
+    'countries'             => 'Država|Države',
+    'cities'                => 'Grad|Gradovi',
 
     'welcome'               => 'Dobrodošli',
     'banking'               => 'Bankarstvo',
@@ -72,6 +75,7 @@ return [
     'add_new'               => 'Dodaj novo',
     'add_income'            => 'Dodajte prihod',
     'add_expense'           => 'Dodajte trošak',
+    'add_transfer'          => 'Dodaj transfer',
     'show'                  => 'Prikaži',
     'edit'                  => 'Uredi',
     'delete'                => 'Izbriši',
@@ -160,6 +164,10 @@ return [
     'recurring_and_more'    => 'Ponavlja se i više',
     'due_on'                => 'Datum dospjeća',
     'amount_due'            => 'Dospjeli iznos',
+    'financial_year'        => 'Početak fiskalne godine',
+    'created'               => 'Kreirano',
+    'state'                 => 'Provincija',
+    'zip_code'              => 'Poštanski broj',
 
     'card' => [
         'cards'                 => 'Kartica|Kartice',

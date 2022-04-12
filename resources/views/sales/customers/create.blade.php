@@ -30,7 +30,15 @@
 
                 {{ Form::textGroup('website', trans('general.website'), 'globe', []) }}
 
-                {{ Form::textareaGroup('address', trans('general.address')) }}
+                {{ Form::textareaGroup('address', trans('general.address'), '', '', ['rows' => '2', 'v-model' => 'form.address']) }}
+
+                {{ Form::textGroup('city', trans_choice('general.cities', 1), 'city', []) }}
+
+                {{ Form::textGroup('zip_code', trans('general.zip_code'), 'mail-bulk', []) }}
+
+                {{ Form::textGroup('state', trans('general.state'), 'city', []) }}
+
+                {{ Form::selectGroup('country', trans_choice('general.countries', 1), 'globe-americas', trans('countries'), setting('company.country'), ['model' => 'form.country']) }}
 
                 {{ Form::textGroup('reference', trans('general.reference'), 'file', []) }}
 
@@ -54,9 +62,9 @@
                 @stack('create_user_input_end')
 
                 <div v-if="can_login" class="row col-md-12">
-                    {{Form::passwordGroup('password', trans('auth.password.current'), 'key', [], 'col-md-6 password')}}
+                    {{Form::passwordGroup('password', trans('auth.password.current'), 'key', ['required' => 'required'], 'col-md-6 password')}}
 
-                    {{Form::passwordGroup('password_confirmation', trans('auth.password.current_confirm'), 'key', [], 'col-md-6 password')}}
+                    {{Form::passwordGroup('password_confirmation', trans('auth.password.current_confirm'), 'key', ['required' => 'required'], 'col-md-6 password')}}
                 </div>
             </div>
         </div>

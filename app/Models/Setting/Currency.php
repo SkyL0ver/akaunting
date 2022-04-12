@@ -19,7 +19,20 @@ class Currency extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'name', 'code', 'rate', 'enabled', 'precision', 'symbol', 'symbol_first', 'decimal_mark', 'thousands_separator'];
+    protected $fillable = [
+        'company_id',
+        'name',
+        'code',
+        'rate',
+        'enabled',
+        'precision',
+        'symbol',
+        'symbol_first',
+        'decimal_mark',
+        'thousands_separator',
+        'created_from',
+        'created_by',
+    ];
 
     /**
      * The attributes that should be cast.
@@ -167,7 +180,7 @@ class Currency extends Model
      */
     public function scopeCode($query, $code)
     {
-        return $query->where($this->table . '.code', $code);
+        return $query->where($this->qualifyColumn('code'), $code);
     }
 
     /**

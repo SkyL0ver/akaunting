@@ -10,7 +10,8 @@ Akaunting is a free, open source and online accounting software designed for sma
 
 * [Home](https://akaunting.com) - The house of Akaunting
 * [Forum](https://akaunting.com/forum) - Ask for support
-* [Documentation](https://akaunting.com/docs) - Learn how to use and develop
+* [Documentation](https://akaunting.com/docs) - Learn how to use
+* [Developer Portal](https://developer.akaunting.com) - Generate passive income
 * [App Store](https://akaunting.com/apps) - Extend your Akaunting
 * [Translations](https://crowdin.com/project/akaunting) - Help us translate Akaunting
 
@@ -56,7 +57,7 @@ Please see [Releases](../../releases) for more information what has changed rece
 
 ## Security
 
-If you discover any security related issues, please email security@akaunting.com instead of using the issue tracker.
+Please review [our security policy](https://github.com/akaunting/akaunting/security/policy) on how to report security vulnerabilities.
 
 ## Credits
 

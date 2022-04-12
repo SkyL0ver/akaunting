@@ -22,11 +22,14 @@ class Bills extends Import
 
         $row = parent::map($row);
 
+        $country = array_search($row['contact_country'], trans('countries'));
+
         $row['document_number'] = $row['bill_number'];
         $row['issued_at'] = $row['billed_at'];
         $row['category_id'] = $this->getCategoryId($row, 'expense');
         $row['contact_id'] = $this->getContactId($row, 'vendor');
         $row['type'] = Model::BILL_TYPE;
+        $row['contact_country'] = !empty($country) ? $country : null;
 
         return $row;
     }
@@ -37,9 +40,10 @@ class Bills extends Import
 
         $rules['bill_number'] = Str::replaceFirst('unique:documents,NULL', 'unique:documents,document_number', $rules['document_number']);
         $rules['billed_at'] = $rules['issued_at'];
+        $rules['currency_rate'] = 'required';
 
         unset($rules['document_number'], $rules['issued_at'], $rules['type']);
 
-        return $rules;
+        return $this->replaceForBatchRules($rules);
     }
 }

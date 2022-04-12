@@ -2,27 +2,40 @@
 
 namespace App\Models\Common;
 
+use App\Events\Common\CompanyForgettingCurrent;
+use App\Events\Common\CompanyForgotCurrent;
+use App\Events\Common\CompanyMadeCurrent;
+use App\Events\Common\CompanyMakingCurrent;
 use App\Models\Document\Document;
 use App\Traits\Contacts;
 use App\Traits\Media;
+use App\Traits\Owners;
+use App\Traits\Sources;
 use App\Traits\Tenants;
 use App\Traits\Transactions;
+use App\Utilities\Overrider;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Kyslik\ColumnSortable\Sortable;
+use Laratrust\Contracts\Ownable;
 use Lorisleiva\LaravelSearchString\Concerns\SearchString;
 
-class Company extends Eloquent
+class Company extends Eloquent implements Ownable
 {
-    use Contacts, Media, SearchString, SoftDeletes, Sortable, Tenants, Transactions;
+    use Contacts, Media, Owners, SearchString, SoftDeletes, Sortable, Sources, Tenants, Transactions;
 
     protected $table = 'companies';
 
-    protected $tenantable = false;
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['location'];
 
     protected $dates = ['deleted_at'];
 
-    protected $fillable = ['domain', 'enabled'];
+    protected $fillable = ['domain', 'enabled', 'created_from', 'created_by'];
 
     protected $casts = [
         'enabled' => 'boolean',
@@ -68,13 +81,17 @@ class Company extends Eloquent
     {
         parent::boot();
 
-        static::retrieved(function($model) {
-            $model->setSettings();
-        });
+        try { // TODO will optimize..
+            static::retrieved(function($model) {
+                $model->setCommonSettingsAsAttributes();
+            });
 
-        static::saving(function($model) {
-            $model->unsetSettings();
-        });
+            static::saving(function($model) {
+                $model->unsetCommonSettingsFromAttributes();
+            });
+        } catch(\Throwable $e) {
+            
+        }
     }
 
     public function documents()
@@ -212,6 +229,11 @@ class Company extends Eloquent
         return $this->hasMany('App\Models\Module\ModuleHistory');
     }
 
+    public function owner()
+    {
+        return $this->belongsTo('App\Models\Auth\User', 'created_by', 'id')->withDefault(['name' => trans('general.na')]);
+    }
+
     public function reconciliations()
     {
         return $this->hasMany('App\Models\Banking\Reconciliation');
@@ -249,7 +271,7 @@ class Company extends Eloquent
 
     public function users()
     {
-        return $this->morphedByMany('App\Models\Auth\User', 'user', 'user_companies', 'company_id', 'user_id');
+        return $this->belongsToMany('App\Models\Auth\User', 'App\Models\Auth\UserCompany');
     }
 
     public function vendors()
@@ -262,59 +284,67 @@ class Company extends Eloquent
         return $this->hasMany('App\Models\Common\Widget');
     }
 
-    public function setSettings()
+    public function setCommonSettingsAsAttributes()
     {
-        $settings = $this->settings;
+        try { // TODO will optimize..
+            $settings = $this->settings;
 
-        $groups = [
-            'company',
-            'default',
-        ];
+            $groups = [
+                'company',
+                'default',
+            ];
 
-        foreach ($settings as $setting) {
-            list($group, $key) = explode('.', $setting->getAttribute('key'));
+            foreach ($settings as $setting) {
+                list($group, $key) = explode('.', $setting->getAttribute('key'));
 
-            // Load only general settings
-            if (!in_array($group, $groups)) {
-                continue;
+                // Load only general settings
+                if (!in_array($group, $groups)) {
+                    continue;
+                }
+
+                $value = $setting->getAttribute('value');
+
+                if (($key == 'logo') && empty($value)) {
+                    $value = 'public/img/company.png';
+                }
+
+                $this->setAttribute($key, $value);
             }
 
-            $value = $setting->getAttribute('value');
-
-            if (($key == 'logo') && empty($value)) {
-                $value = 'public/img/company.png';
+            // Set default default company logo if empty
+            if ($this->getAttribute('logo') == '') {
+                $this->setAttribute('logo', 'public/img/company.png');
             }
-
-            $this->setAttribute($key, $value);
-        }
-
-        // Set default default company logo if empty
-        if ($this->getAttribute('logo') == '') {
-            $this->setAttribute('logo', 'public/img/company.png');
+        } catch(\Throwable $e) {
+            
         }
     }
 
-    public function unsetSettings()
+    public function unsetCommonSettingsFromAttributes()
     {
-        $settings = $this->settings;
+        try { // TODO will optimize..
+            $settings = $this->settings;
 
-        $groups = [
-            'company',
-            'default',
-        ];
+            $groups = [
+                'company',
+                'default',
+            ];
 
-        foreach ($settings as $setting) {
-            list($group, $key) = explode('.', $setting->getAttribute('key'));
+            foreach ($settings as $setting) {
+                list($group, $key) = explode('.', $setting->getAttribute('key'));
 
-            // Load only general settings
-            if (!in_array($group, $groups)) {
-                continue;
+                // Load only general settings
+                if (!in_array($group, $groups)) {
+                    continue;
+                }
+
+                $this->offsetUnset($key);
             }
 
-            $this->offsetUnset($key);
+            $this->offsetUnset('logo');
+        } catch(\Throwable $e) {
+            
         }
-
-        $this->offsetUnset('logo');
     }
 
     /**
@@ -337,7 +367,7 @@ class Company extends Eloquent
             return $query->get();
         }
 
-        $limit = $request->get('limit', setting('default.list_limit', '25'));
+        $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
 
         return $query->paginate($limit);
     }
@@ -433,6 +463,131 @@ class Company extends Eloquent
      */
     public function getCompanyLogoAttribute()
     {
-        return $this->getMedia('company_logo')->last();
+        return $this->getMedia('company.logo')->last();
+    }
+
+    public function getLocationAttribute()
+    {
+        $location = [];
+
+        if (setting('company.city')) {
+            $location[] = setting('company.city');
+        }
+
+        if (setting('company.zip_code')) {
+            $location[] = setting('company.zip_code');
+        }
+
+        if (setting('company.state')) {
+            $location[] = setting('company.state');
+        }
+
+        if (setting('company.country')) {
+            $location[] = trans('countries.' . setting('company.country'));
+        }
+
+        return implode(', ', $location);
+    }
+
+    public function makeCurrent($force = false)
+    {
+        if (!$force && $this->isCurrent()) {
+            return $this;
+        }
+
+        static::forgetCurrent();
+
+        event(new CompanyMakingCurrent($this));
+
+        // Bind to container
+        app()->instance(static::class, $this);
+
+        // Set session for backward compatibility @deprecated
+        //session(['company_id' => $this->id]);
+
+        // Load settings
+        setting()->setExtraColumns(['company_id' => $this->id]);
+        setting()->forgetAll();
+        setting()->load(true);
+
+        // Override settings and currencies
+        Overrider::load('settings');
+        Overrider::load('currencies');
+
+        event(new CompanyMadeCurrent($this));
+
+        return $this;
+    }
+
+    public function isCurrent()
+    {
+        return optional(static::getCurrent())->id === $this->id;
+    }
+
+    public function isNotCurrent()
+    {
+        return !$this->isCurrent();
+    }
+
+    public static function getCurrent()
+    {
+        if (!app()->has(static::class)) {
+            return null;
+        }
+
+        return app(static::class);
+    }
+
+    public static function forgetCurrent()
+    {
+        $current = static::getCurrent();
+
+        if (is_null($current)) {
+            return null;
+        }
+
+        event(new CompanyForgettingCurrent($current));
+
+        // Remove from container
+        app()->forgetInstance(static::class);
+
+        // Unset session for backward compatibility @deprecated
+        //session()->forget('company_id');
+
+        // Remove settings
+        setting()->forgetAll();
+
+        event(new CompanyForgotCurrent($current));
+
+        return $current;
+    }
+
+    public static function hasCurrent()
+    {
+        return static::getCurrent() !== null;
+    }
+
+    public function scopeSource($query, $source)
+    {
+        return $query->where($this->qualifyColumn('created_from'), $source);
+    }
+
+    public function scopeIsOwner($query)
+    {
+        return $query->where($this->qualifyColumn('created_by'), user_id());
+    }
+
+    public function scopeIsNotOwner($query)
+    {
+        return $query->where($this->qualifyColumn('created_by'), '<>', user_id());
+    }
+
+    public function ownerKey($owner)
+    {
+        if ($this->isNotOwnable()) {
+            return 0;
+        }
+
+        return $this->created_by;
     }
 }

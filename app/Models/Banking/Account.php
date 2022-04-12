@@ -5,10 +5,11 @@ namespace App\Models\Banking;
 use App\Abstracts\Model;
 use App\Traits\Transactions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Bkwld\Cloner\Cloneable;
 
 class Account extends Model
 {
-    use HasFactory, Transactions;
+    use Cloneable, HasFactory, Transactions;
 
     protected $table = 'accounts';
 
@@ -24,7 +25,7 @@ class Account extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'name', 'number', 'currency_code', 'opening_balance', 'bank_name', 'bank_phone', 'bank_address', 'enabled'];
+    protected $fillable = ['company_id', 'name', 'number', 'currency_code', 'opening_balance', 'bank_name', 'bank_phone', 'bank_address', 'enabled', 'created_from', 'created_by'];
 
     /**
      * The attributes that should be cast.
@@ -91,6 +92,41 @@ class Account extends Model
 
         return $total;
     }
+
+    /**
+     * Get the current balance.
+     *
+     * @return string
+     */
+    public function getIncomeBalanceAttribute()
+    {
+        // Opening Balance
+        //$total = $this->opening_balance;
+        $total = 0;
+
+        // Sum Incomes
+        $total += $this->income_transactions->sum('amount');
+
+        return $total;
+    }
+
+    /**
+     * Get the current balance.
+     *
+     * @return string
+     */
+    public function getExpenseBalanceAttribute()
+    {
+        // Opening Balance
+        //$total = $this->opening_balance;
+        $total = 0;
+
+        // Subtract Expenses
+        $total += $this->expense_transactions->sum('amount');
+
+        return $total;
+    }
+
 
     /**
      * Create a new factory instance for the model.

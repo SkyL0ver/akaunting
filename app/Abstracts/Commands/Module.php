@@ -21,9 +21,9 @@ abstract class Module extends Command
 
     protected function changeRuntime()
     {
-        $this->old_company_id = session('company_id');
+        $this->old_company_id = company_id();
 
-        session(['company_id' => $this->company_id]);
+        company($this->company_id)->makeCurrent();
 
         app()->setLocale($this->locale);
 
@@ -36,7 +36,7 @@ abstract class Module extends Command
         session()->forget('company_id');
 
         if (!empty($this->old_company_id)) {
-            session(['company_id' => $this->old_company_id]);
+            company($this->old_company_id)->makeCurrent();
         }
     }
 
@@ -58,6 +58,8 @@ abstract class Module extends Command
             'module_id' => $this->model->id,
             'version' => $this->module->get('version'),
             'description' => trans('modules.' . $action, ['module' => $this->alias]),
+            'created_from' => source_name(),
+            'created_by' => user_id(),
         ]);
     }
 

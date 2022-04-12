@@ -74,7 +74,7 @@ return [
             'bank_name' => ['searchable' => true],
             'bank_address' => ['searchable' => true],
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'enabled' => ['boolean' => true],
         ],
@@ -96,12 +96,12 @@ return [
             'id',
             'type',
             'account_id' => [
-                'route' => 'accounts.index'
+                'route' => ['accounts.index', 'search=enabled:1'],
             ],
             'paid_at' => ['date' => true],
             'amount',
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'document_id',
             'contact_id',
@@ -109,9 +109,15 @@ return [
             'payment_method',
             'reference',
             'category_id' => [
-                'route' => 'categories.index'
+                'route' => ['categories.index', 'search=enabled:1'],
             ],
             'parent_id',
+            'recurring' => [
+                'key' => 'recurring',
+                'foreign_key' => '',
+                'relationship' => true,
+                'boolean' => true,
+            ]
         ],
     ],
 
@@ -120,11 +126,11 @@ return [
             'id',
             'expense_account' => [
                 'relationship' => true,
-                'route' => 'accounts.index',
+                'route' => ['accounts.index', 'search=enabled:1'],
             ],
             'income_account' => [
                 'relationship' => true,
-                'route' => 'accounts.index',
+                'route' => ['accounts.index', 'search=enabled:1'],
             ],
         ],
     ],
@@ -153,7 +159,7 @@ return [
             'description' => ['searchable' => true],
             'enabled' => ['boolean' => true],
             'category_id' => [
-                'route' => ['categories.index', 'search=type:item']
+                'route' => ['categories.index', 'search=type:item enabled:1']
             ],
             'sales_price',
             'purchase_price',
@@ -171,7 +177,7 @@ return [
             'address' => ['searchable' => true],
             'website' => ['searchable' => true],
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'reference',
             'user_id',
@@ -193,7 +199,7 @@ return [
             'due_at' => ['date' => true],
             'amount',
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'contact_id',
             'contact_name' => ['searchable' => true],
@@ -202,9 +208,14 @@ return [
             'contact_phone' => ['searchable' => true],
             'contact_address' => ['searchable' => true],
             'category_id' => [
-                'route' => 'categories.index'
+                'route' => ['categories.index', 'search=enabled:1'],
             ],
             'parent_id',
+            'recurring' => [
+                'key' => 'recurring',
+                'relationship' => true,
+                'boolean' => true,
+            ]
         ],
     ],
 
@@ -213,7 +224,15 @@ return [
             'id',
             'document_number' => ['searchable' => true],
             'order_number' => ['searchable' => true],
-            'status',
+            'status' => [
+                'values' => [
+                    'paid' => 'documents.statuses.paid',
+                    'partial' => 'documents.statuses.partial',
+                    'received' => 'documents.statuses.received',
+                    'cancelled' => 'documents.statuses.cancelled',
+                    'draft' => 'documents.statuses.draft',
+                ],
+            ],
             'issued_at' => [
                 'key' => 'billed_at',
                 'date' => true,
@@ -221,10 +240,10 @@ return [
             'due_at' => ['date' => true],
             'amount',
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'contact_id' => [
-                'route' => 'vendors.index'
+                'route' => ['vendors.index', 'search=enabled:1'],
             ],
             'contact_name' => ['searchable' => true],
             'contact_email' => ['searchable' => true],
@@ -232,9 +251,15 @@ return [
             'contact_phone' => ['searchable' => true],
             'contact_address' => ['searchable' => true],
             'category_id' => [
-                'route' => ['categories.index', 'search=type:expense']
+                'route' => ['categories.index', 'search=type:expense enabled:1']
             ],
             'parent_id',
+            'recurring' => [
+                'key' => 'recurring',
+                'foreign_key' => '',
+                'relationship' => true,
+                'boolean' => true,
+            ]
         ],
     ],
 
@@ -243,24 +268,30 @@ return [
             'id',
             'type',
             'account_id' => [
-                'route' => 'accounts.index'
+                'route' => ['accounts.index', 'search=enabled:1'],
             ],
             'paid_at' => ['date' => true],
             'amount',
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'document_id',
             'contact_id' => [
-                'route' => 'vendors.index'
+                'route' => ['vendors.index', 'search=enabled:1'],
             ],
             'description' => ['searchable' => true],
             'payment_method',
             'reference',
             'category_id' => [
-                'route' => ['categories.index', 'search=type:expense']
+                'route' => ['categories.index', 'search=type:expense enabled:1']
             ],
             'parent_id',
+            'recurring' => [
+                'key' => 'recurring',
+                'foreign_key' => '',
+                'relationship' => true,
+                'boolean' => true,
+            ]
         ],
     ],
 
@@ -269,7 +300,16 @@ return [
             'id',
             'document_number' => ['searchable' => true],
             'order_number' => ['searchable' => true],
-            'status',
+            'status' => [
+                'values' => [
+                    'paid' => 'documents.statuses.paid',
+                    'partial' => 'documents.statuses.partial',
+                    'sent' => 'documents.statuses.sent',
+                    'viewed' => 'documents.statuses.viewed',
+                    'cancelled' => 'documents.statuses.cancelled',
+                    'draft' => 'documents.statuses.draft',
+                ]
+            ],
             'issued_at' => [
                 'key' => 'invoiced_at',
                 'date' => true,
@@ -277,10 +317,10 @@ return [
             'due_at' => ['date' => true],
             'amount',
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'contact_id' => [
-                'route' => 'customers.index'
+                'route' => ['customers.index', 'search=enabled:1'],
             ],
             'contact_name' => ['searchable' => true],
             'contact_email' => ['searchable' => true],
@@ -288,9 +328,15 @@ return [
             'contact_phone' => ['searchable' => true],
             'contact_address' => ['searchable' => true],
             'category_id' => [
-                'route' => ['categories.index', 'search=type:income']
+                'route' => ['categories.index', 'search=type:income enabled:1']
             ],
             'parent_id',
+            'recurring' => [
+                'key' => 'recurring',
+                'foreign_key' => '',
+                'relationship' => true,
+                'boolean' => true,
+            ]
         ],
     ],
 
@@ -299,24 +345,30 @@ return [
             'id',
             'type',
             'account_id' => [
-                'route' => 'accounts.index'
+                'route' => ['accounts.index', 'search=enabled:1'],
             ],
             'paid_at' => ['date' => true],
             'amount',
             'currency_code' => [
-                'route' => 'currencies.index'
+                'route' => ['currencies.index', 'search=enabled:1'],
             ],
             'document_id',
             'contact_id' => [
-                'route' => 'customers.index'
+                'route' => ['customers.index', 'search=enabled:1'],
             ],
             'description' => ['searchable' => true],
             'payment_method',
             'reference',
             'category_id' => [
-                'route' => ['categories.index', 'search=type:income']
+                'route' => ['categories.index', 'search=type:income enabled:1'],
             ],
             'parent_id',
+            'recurring' => [
+                'key' => 'recurring',
+                'foreign_key' => '',
+                'relationship' => true,
+                'boolean' => true,
+            ]
         ],
     ],
 

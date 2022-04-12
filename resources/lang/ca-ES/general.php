@@ -51,6 +51,9 @@ return [
     'templates'             => 'Plantilla|Plantilles',
     'sales'                 => 'Venda|Vendes',
     'purchases'             => 'Compra|Compres',
+    'notifications'         => 'Notificació|Notificacions',
+    'countries'             => 'País|Països',
+    'cities'                => 'Població/Ciutat|Poblacions/Ciutats',
 
     'welcome'               => 'Benvingut/da',
     'banking'               => 'Bancs',
@@ -72,6 +75,7 @@ return [
     'add_new'               => 'Afegeix-ne un de nou',
     'add_income'            => 'Afegeix ingrés',
     'add_expense'           => 'Afegeix despesa',
+    'add_transfer'          => 'Afegeix transferència',
     'show'                  => 'Mostra',
     'edit'                  => 'Edita',
     'delete'                => 'Esborra',
@@ -114,7 +118,7 @@ return [
     'all'                   => 'Tot',
     'all_type'              => 'Tot :type',
     'upcoming'              => 'Pròxims',
-    'created'               => 'Creat',
+    'created'               => 'Creat/da',
     'id'                    => 'ID',
     'more_actions'          => 'Més accions',
     'duplicate'             => 'Duplica',
@@ -160,6 +164,10 @@ return [
     'recurring_and_more'    => 'Recurrent i més...',
     'due_on'                => 'Límit el',
     'amount_due'            => 'Quantitat',
+    'financial_year'        => 'Any fiscal',
+    'created'               => 'Creat/da',
+    'state'                 => 'Província/Estat',
+    'zip_code'              => 'Codi postal',
 
     'card' => [
         'cards'                 => 'Tarjeta|Tarjetes',

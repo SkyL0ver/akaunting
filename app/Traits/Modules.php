@@ -4,9 +4,9 @@ namespace App\Traits;
 
 use App\Models\Module\Module;
 use App\Traits\SiteApi;
+use App\Utilities\Date;
 use App\Utilities\Info;
-use Cache;
-use Date;
+use Illuminate\Support\Facades\Cache;
 
 trait Modules
 {
@@ -70,6 +70,23 @@ trait Modules
         Cache::put($key, $documentation, Date::now()->addHour());
 
         return $documentation;
+    }
+
+    public function getModuleReleases($alias, $data = [])
+    {
+        $key = 'apps.' . $alias . '.releases.' . $this->getDataKeyOfModules($data);
+
+        $releases = Cache::get($key);
+
+        if (!empty($releases)) {
+            return $releases;
+        }
+
+        $releases = static::getResponseData('GET', 'apps/' . $alias . '/releases', $data);
+
+        Cache::put($key, $releases, Date::now()->addHour());
+
+        return $releases;
     }
 
     public function getModuleReviews($alias, $data = [])
@@ -164,7 +181,7 @@ trait Modules
 
     public function getInstalledModules()
     {
-        $key = 'apps.installed.' . session('company_id');
+        $key = 'apps.installed.' . company_id();
 
         if ($installed = Cache::get($key)) {
             return $installed;
@@ -299,17 +316,22 @@ trait Modules
         return true;
     }
 
-    public function moduleIsEnabled($alias)
+    public function moduleIsEnabled($alias): bool
     {
-        if (!$this->moduleExists($alias)) {
+        if (! $this->moduleExists($alias)) {
             return false;
         }
 
-        if (!Module::alias($alias)->enabled()->first()) {
+        if (! Module::alias($alias)->enabled()->first()) {
             return false;
         }
 
         return true;
+    }
+
+    public function moduleIsDisabled($alias): bool
+    {
+        return ! $this->moduleIsEnabled($alias);
     }
 
     public function loadSuggestions()
@@ -379,7 +401,7 @@ trait Modules
         return false;
     }
 
-    public function getNotifications($path)
+    public function getNotifications($path): array
     {
         $key = 'apps.notifications';
 
@@ -390,10 +412,10 @@ trait Modules
         }
 
         if (!empty($data) && array_key_exists($path, $data)) {
-            return $data[$path];
+            return (array) $data[$path];
         }
 
-        return false;
+        return [];
     }
 
     public function getPageNumberOfModules($data = [])

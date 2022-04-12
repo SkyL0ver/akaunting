@@ -14,9 +14,16 @@ return [
 
     'name' => env('APP_NAME', 'Akaunting'),
 
-    'installed' => env('APP_INSTALLED', false),
+    'installed' => (bool) env('APP_INSTALLED', false),
 
-    'schedule_time' => env('APP_SCHEDULE_TIME', '9:00'),
+    'schedule_time' => env('APP_SCHEDULE_TIME', '09:00'),
+
+    'eager_load' => (bool) env('APP_EAGER_LOAD', true),
+
+    'throttles' => [
+        'api' => env('APP_THROTTLES_API', '60'),
+        'import' => env('APP_THROTTLES_IMPORT', '1'),
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -55,7 +62,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://localhost'),
+    'url' => env('APP_URL', ''),
 
     'asset_url' => env('ASSET_URL', null),
 
@@ -70,7 +77,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------
@@ -96,7 +103,7 @@ return [
     |
     */
 
-    'fallback_locale' => 'en-GB',
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en-GB'),
 
     /*
     |--------------------------------------------------------------------------
@@ -108,7 +115,7 @@ return [
     | localized telephone numbers, street address information and more.
     |
     */
-    'faker_locale' => 'en_GB',
+    'faker_locale' => env('APP_FAKER_LOCALE', 'en_GB'),
 
     /*
     |--------------------------------------------------------------------------
@@ -180,6 +187,7 @@ return [
         App\Providers\Form::class,
         App\Providers\Macro::class,
         App\Providers\Observer::class,
+        App\Providers\Queue::class,
         App\Providers\Route::class,
         App\Providers\Validation::class,
         App\Providers\ViewComposer::class,
@@ -224,6 +232,7 @@ return [
         'Notification' => Illuminate\Support\Facades\Notification::class,
         'Password' => Illuminate\Support\Facades\Password::class,
         'Queue' => Illuminate\Support\Facades\Queue::class,
+        'RateLimiter' => Illuminate\Support\Facades\RateLimiter::class,
         'Redirect' => Illuminate\Support\Facades\Redirect::class,
         'Redis' => Illuminate\Support\Facades\Redis::class,
         'Request' => Illuminate\Support\Facades\Request::class,

@@ -39,6 +39,7 @@ export default class BulkAction {
 
         if (!this.count) {
             this.show = false;
+            this.hideSearchHTML();
         }
     }
 
@@ -46,6 +47,7 @@ export default class BulkAction {
     selectAll() {
         this.show = false;
         this.selected = [];
+        this.hideSearchHTML();
 
         if (!this.select_all) {
             this.show = true;
@@ -106,37 +108,43 @@ export default class BulkAction {
                 }));
 
                 download_promise.then((response) => {
-                    const blob = new Blob([response.data], {type: response.data.type});
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-    
-                    link.href = url;
-    
-                    const contentDisposition = response.headers['content-disposition'];
-    
-                    let fileName = 'unknown';
-    
-                    if (contentDisposition) {
-                        const fileNameMatch = contentDisposition.match(/filename=(.+)/);
-    
-                        if (fileNameMatch.length === 2) {
-                            fileName = fileNameMatch[1];
+                    if (response.data.type != 'application/json') {
+                        const blob = new Blob([response.data], {type: response.data.type});
+                        const url = window.URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+
+                        link.href = url;
+
+                        const contentDisposition = response.headers['content-disposition'];
+
+                        let fileName = 'unknown';
+
+                        if (contentDisposition) {
+                            const fileNameMatch = contentDisposition.match(/filename=(.+)/);
+
+                            if (fileNameMatch.length === 2) {
+                                fileName = fileNameMatch[1];
+                            }
                         }
+
+                        link.setAttribute('download', fileName);
+
+                        document.body.appendChild(link);
+
+                        link.click();
+                        link.remove();
+
+                        window.URL.revokeObjectURL(url);
+
+                        this.loading = false;
+                        this.modal = false;
+                        this.value = '*';
+                        this.clear();
+
+                        return;
                     }
-    
-                    link.setAttribute('download', fileName);
-    
-                    document.body.appendChild(link);
-    
-                    link.click();
-                    link.remove();
-    
-                    window.URL.revokeObjectURL(url);
-    
-                     this.loading = false;
-                     this.modal = false;
-                     this.value = '*';
-                     this.clear();
+
+                    window.location.reload(false);
                 });
               break;
             default:
@@ -146,8 +154,10 @@ export default class BulkAction {
                 }));
 
                 type_promise.then(response => {
-                    if (response.data.redirect) {
+                    if (response.data.redirect === true) {
                         window.location.reload(false);
+                    } else if (typeof response.data.redirect === 'string') {
+                        window.location.href = response.data.redirect;
                     }
                 })
                 .catch(error => {
@@ -167,7 +177,17 @@ export default class BulkAction {
         this.show = false;
         this.select_all = false;
         this.selected = [];
+        this.hideSearchHTML();
     }
+
+    hideSearchHTML() {
+        setInterval(() => {
+            const search_box_html = document.querySelector('.js-search-box-hidden');
+            if (search_box_html) {
+                search_box_html.classList.add('d-none');
+            }
+        }, 5);
+    };
 
     // Change enabled status
     status(item_id, event, notify) {

@@ -29,6 +29,18 @@ class Event extends Provider
             'App\Listeners\Update\V21\Version210',
             'App\Listeners\Update\V21\Version213',
             'App\Listeners\Update\V21\Version218',
+            'App\Listeners\Update\V21\Version219',
+            'App\Listeners\Update\V21\Version2112',
+            'App\Listeners\Update\V21\Version2114',
+            'App\Listeners\Update\V21\Version2116',
+            'App\Listeners\Update\V21\Version2117',
+            'App\Listeners\Update\V21\Version2118',
+            'App\Listeners\Update\V21\Version2124',
+            'App\Listeners\Update\V21\Version2125',
+            'App\Listeners\Update\V21\Version2126',
+            'App\Listeners\Update\V21\Version2127',
+            'App\Listeners\Update\V21\Version2133',
+            'App\Listeners\Update\V21\Version2134',
         ],
         'Illuminate\Auth\Events\Login' => [
             'App\Listeners\Auth\Login',
@@ -82,6 +94,9 @@ class Event extends Provider
             'App\Listeners\Module\InstallExtraModules',
             'App\Listeners\Module\FinishInstallation',
         ],
+        'App\Events\Module\Uninstalled' => [
+            'App\Listeners\Module\FinishUninstallation',
+        ],
     ];
 
     /**
@@ -100,5 +115,6 @@ class Event extends Provider
         'App\Listeners\Report\AddIncomeExpenseCategories',
         'App\Listeners\Report\AddSearchString',
         'App\Listeners\Report\AddRowsToTax',
+        'App\Listeners\Report\AddBasis',
     ];
 }

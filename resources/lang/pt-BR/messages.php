@@ -8,9 +8,13 @@ return [
         'deleted'           => ':type excluído!',
         'duplicated'        => ':type duplicado!',
         'imported'          => ':type importado!',
+        'import_queued'     => ':type importação foi agendada! Você receberá um e-mail quando terminar.',
         'exported'          => ':type exportado!',
+        'export_queued'     => ':type exportação foi agendada! Você receberá um e-mail quando estiver pronto para baixar.',
         'enabled'           => ': tipo habilitado!',
         'disabled'          => ': tipo desativado!',
+
+        'clear_all'         => 'Ótimo! Você limpou todos os :type.',
     ],
 
     'error' => [

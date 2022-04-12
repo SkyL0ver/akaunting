@@ -6,7 +6,7 @@
     <div class="card">
         {!! Form::open([
             'route' => 'revenues.store',
-            'id' => 'revenue',
+            'id' => 'transaction',
             '@submit.prevent' => 'onSubmit',
             '@keydown' => 'form.errors.clear($event.target.name)',
             'files' => true,
@@ -26,11 +26,11 @@
 
                     {{ Form::selectAddNewGroup('account_id', trans_choice('general.accounts', 1), 'university', $accounts, setting('default.account'), ['required' => 'required', 'path' => route('modals.accounts.create'), 'change' => 'onChangeAccount']) }}
 
-                    {{ Form::selectRemoteAddNewGroup('contact_id', trans_choice('general.customers', 1), 'user', $customers, null, ['path' => route('modals.customers.create'), 'remote_action' => route('customers.index')]) }}
+                    {{ Form::selectRemoteAddNewGroup('contact_id', trans_choice('general.customers', 1), 'user', $customers, old('contact.id', old('contact_id', null)), ['path' => route('modals.customers.create'), 'remote_action' => route('customers.index')]) }}
 
                     {{ Form::textareaGroup('description', trans('general.description')) }}
 
-                    {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, setting('default.income_category'), ['required' => 'required', 'path' => route('modals.categories.create') . '?type=income', 'remote_action' => route('categories.index'). '?search=type:income']) }}
+                    {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, setting('default.income_category'), ['required' => 'required', 'path' => route('modals.categories.create') . '?type=income', 'remote_action' => route('categories.index'). '?search=type:income enabled:1']) }}
 
                     {{ Form::recurring('create') }}
 
@@ -56,5 +56,5 @@
 @endsection
 
 @push('scripts_start')
-    <script src="{{ asset('public/js/sales/revenues.js?v=' . version('short')) }}"></script>
+    <script src="{{ asset('public/js/banking/transactions.js?v=' . version('short')) }}"></script>
 @endpush

@@ -12,6 +12,8 @@ class SearchString extends Component
 
     public $filters;
 
+    public $filtered;
+
     /** string */
     public $model;
 
@@ -20,10 +22,11 @@ class SearchString extends Component
      *
      * @return void
      */
-    public function __construct(string $model = '', $filters = false)
+    public function __construct(string $model = '', $filters = false, $filtered = false)
     {
         $this->model = $model;
         $this->filters = $filters;
+        $this->filtered = $filtered;
     }
 
     /**
@@ -86,7 +89,11 @@ class SearchString extends Component
             $column = $options['key'];
         }
 
-        if (isset($options['relationship'])) {
+        if (isset($options['relationship']) && isset($options['foreign_key']) && !empty($options['foreign_key'])) {
+            $column .= '.' . $options['foreign_key'];
+        }
+
+        if (isset($options['relationship']) && !isset($options['foreign_key'])) {
             $column .= '.id';
         }
 
@@ -99,6 +106,10 @@ class SearchString extends Component
             $column = str_replace('_id', '', $column);
         } else if (strpos($column, '_code') !== false) {
             $column = str_replace('_code', '', $column);
+        }
+
+        if (!empty($options['translation']) && !isset($options['boolean'])) {
+            return $options['translation'];
         }
 
         if (!empty($options['key'])) {

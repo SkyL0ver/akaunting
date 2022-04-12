@@ -3,36 +3,30 @@
 namespace App\Jobs\Document;
 
 use App\Abstracts\Job;
-use App\Traits\DateTime;
-use App\Traits\Currencies;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
 use App\Jobs\Common\CreateItem;
+use App\Models\Document\Document;
 use App\Models\Document\DocumentTotal;
+use App\Traits\Currencies;
+use App\Traits\DateTime;
+use Illuminate\Support\Str;
 
-class CreateDocumentItemsAndTotals extends Job
+class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, ShouldCreate
 {
     use Currencies, DateTime;
 
     protected $document;
 
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($document, $request)
+    public function __construct(Document $document, $request)
     {
         $this->document = $document;
-        $this->request  = $this->getRequestInstance($request);
+
+        parent::__construct($request);
     }
 
-    /**
-     * Execute the job.
-     *
-     * @return void
-     */
-    public function handle()
+    public function handle(): void
     {
         $precision = config('money.' . $this->document->currency_code . '.precision');
 
@@ -49,6 +43,8 @@ class CreateDocumentItemsAndTotals extends Job
             'name' => 'invoices.sub_total',
             'amount' => round($sub_total, $precision),
             'sort_order' => $sort_order,
+            'created_from' => $this->request['created_from'],
+            'created_by' => $this->request['created_by'],
         ]);
 
         $this->request['amount'] += $sub_total;
@@ -65,15 +61,19 @@ class CreateDocumentItemsAndTotals extends Job
                 'name' => 'invoices.item_discount',
                 'amount' => round($discount_amount_total, $precision),
                 'sort_order' => $sort_order,
+                'created_from' => $this->request['created_from'],
+                'created_by' => $this->request['created_by'],
             ]);
-
-            $this->request['amount'] -= $discount_amount_total;
 
             $sort_order++;
         }
 
         if (!empty($this->request['discount'])) {
-            $discount_total = ($sub_total - $discount_amount_total) * ($this->request['discount'] / 100);
+            if ($this->request['discount_type'] === 'percentage') {
+                $discount_total = $sub_total * ($this->request['discount'] / 100);
+            } else {
+                $discount_total = $this->request['discount'];
+            }
 
             DocumentTotal::create([
                 'company_id' => $this->document->company_id,
@@ -83,6 +83,8 @@ class CreateDocumentItemsAndTotals extends Job
                 'name' => 'invoices.discount',
                 'amount' => round($discount_total, $precision),
                 'sort_order' => $sort_order,
+                'created_from' => $this->request['created_from'],
+                'created_by' => $this->request['created_by'],
             ]);
 
             $this->request['amount'] -= $discount_total;
@@ -98,9 +100,11 @@ class CreateDocumentItemsAndTotals extends Job
                     'type' => $this->document->type,
                     'document_id' => $this->document->id,
                     'code' => 'tax',
-                    'name' => $tax['name'],
+                    'name' => Str::ucfirst($tax['name']),
                     'amount' => round(abs($tax['amount']), $precision),
                     'sort_order' => $sort_order,
+                    'created_from' => $this->request['created_from'],
+                    'created_by' => $this->request['created_by'],
                 ]);
 
                 $this->request['amount'] += $tax['amount'];
@@ -116,6 +120,8 @@ class CreateDocumentItemsAndTotals extends Job
                 $total['type'] = $this->document->type;
                 $total['document_id'] = $this->document->id;
                 $total['sort_order'] = $sort_order;
+                $total['created_from'] = $this->request['created_from'];
+                $total['created_by'] = $this->request['created_by'];
 
                 if (empty($total['code'])) {
                     $total['code'] = 'extra';
@@ -147,10 +153,12 @@ class CreateDocumentItemsAndTotals extends Job
             'name' => 'invoices.total',
             'amount' =>  $this->request['amount'],
             'sort_order' => $sort_order,
+            'created_from' => $this->request['created_from'],
+            'created_by' => $this->request['created_by'],
         ]);
     }
 
-    protected function createItems()
+    protected function createItems(): array
     {
         $sub_total = $discount_amount = $discount_amount_total = 0;
 
@@ -167,6 +175,9 @@ class CreateDocumentItemsAndTotals extends Job
                 $item['global_discount'] = $this->request['discount'];
             }
 
+            $item['created_from'] = $this->request['created_from'];
+            $item['created_by'] = $this->request['created_by'];
+
             if (empty($item['item_id'])) {
                 $new_item_request = [
                     'company_id' => $this->request['company_id'],
@@ -174,7 +185,9 @@ class CreateDocumentItemsAndTotals extends Job
                     'description' => $item['description'],
                     'sale_price' => $item['price'],
                     'purchase_price' => $item['price'],
-                    'enabled' => '1'
+                    'created_from' => $item['created_from'],
+                    'created_by' => $item['created_by'],
+                    'enabled' => '1',
                 ];
 
                 if (!empty($item['tax_ids'])) {
@@ -193,11 +206,15 @@ class CreateDocumentItemsAndTotals extends Job
             $discount_amount = 0;
 
             if (!empty($item['discount'])) {
-                $discount_amount = ($item_amount * ($item['discount'] / 100));
+                if ($item['discount_type'] === 'percentage') {
+                    $discount_amount = ($item_amount * ($item['discount'] / 100));
+                } else {
+                    $discount_amount = $item['discount'];
+                }
             }
 
             // Calculate totals
-            $sub_total += $document_item->total + $discount_amount;
+            $sub_total += $document_item->total;
 
             $discount_amount_total += $discount_amount;
 

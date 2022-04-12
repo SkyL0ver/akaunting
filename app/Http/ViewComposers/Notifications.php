@@ -3,7 +3,7 @@
 namespace App\Http\ViewComposers;
 
 use App\Traits\Modules;
-use Route;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\View;
 
 class Notifications
@@ -27,9 +27,9 @@ class Notifications
             return;
         }
 
-        if (!$notifications = $this->getNotifications($path)) {
-            return;
-        }
+        $path = str_replace('{company_id}/', '', $path);
+
+        $notifications = $this->getNotifications($path);
 
         // Push to a stack
         foreach ($notifications as $notification) {
@@ -38,6 +38,7 @@ class Notifications
             $message = str_replace('#path#', $path, $notification->message);
             $message = str_replace('#token#', csrf_token(), $message);
             $message = str_replace('#url#', route('dashboard'), $message);
+            $message = str_replace('#company_id#', company_id(), $message);
 
             if (!setting('notifications.' . $notification->path . '.' . $notification->id . '.status', 1)) {
                 continue;

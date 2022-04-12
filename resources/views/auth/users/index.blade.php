@@ -45,11 +45,11 @@
                             <td class="col-xs-4 col-sm-3 col-md-2 col-lg-3">
                                 <a class="col-aka" href="{{ route('users.edit', $item->id) }}">
                                     @if (setting('default.use_gravatar', '0') == '1')
-                                        <img src="{{ $item->picture }}" alt="{{ $item->name }}" class="rounded-circle user-img p-1 mr-3 hidden-md" title="{{ $item->name }}">
+                                        <img src="{{ $item->picture }}" alt="{{ $item->name }}" class="rounded-circle user-img p-1 mr-3 d-none d-md-inline" title="{{ $item->name }}">
                                     @elseif (is_object($item->picture))
-                                        <img src="{{ Storage::url($item->picture->id) }}" class="rounded-circle user-img p-1 mr-3 hidden-md" alt="{{ $item->name }}" title="{{ $item->name }}">
+                                        <img src="{{ Storage::url($item->picture->id) }}" class="rounded-circle user-img p-1 mr-3 d-none d-md-inline" alt="{{ $item->name }}" title="{{ $item->name }}">
                                     @else
-                                        <img src="{{ asset('public/img/user.svg') }}" class="user-img p-1 mr-3 hidden-md" alt="{{ $item->name }}"/>
+                                        <img src="{{ asset('public/img/user.svg') }}" class="user-img p-1 mr-3 d-none d-md-inline" alt="{{ $item->name }}"/>
                                     @endif
                                     {{ $item->name }}
                                 </a>
@@ -57,7 +57,7 @@
                             <td class="col-sm-2 col-md-2 col-lg-3 d-none d-sm-block long-texts">{{ $item->email }}</td>
                             <td class="col-md-2 col-lg-2 d-none d-md-block">
                                 @foreach($item->roles as $role)
-                                    <label class="label label-default">{{ $role->display_name }}</label>
+                                    <label class="badge badge-default">{{ $role->display_name }}</label>
                                 @endforeach
                             </td>
                             <td class="col-xs-4 col-sm-3 col-md-2 col-lg-2">

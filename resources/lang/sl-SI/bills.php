@@ -4,6 +4,7 @@ return [
 
     'bill_number'           => 'Številka računa',
     'bill_date'             => 'Datum računa',
+    'bill_amount'           => 'Znesek računa',
     'total_price'           => 'Končni znesek',
     'due_date'              => 'Datum zapadlosti',
     'order_number'          => 'Številka naročila',
@@ -30,7 +31,7 @@ return [
     'payments'              => 'Plačila',
     'add_payment'           => 'Dodaj plačilo',
     'mark_paid'             => 'Označi kot plačano',
-    'mark_received'         => 'Označi kot plačano',
+    'mark_received'         => 'Označi kot prejeto',
     'mark_cancelled'        => 'Označi preklicano',
     'download_pdf'          => 'Prenesi PDF',
     'send_mail'             => 'Pošljite e-pošto',

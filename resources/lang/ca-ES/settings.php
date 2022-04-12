@@ -77,6 +77,12 @@ return [
         ],
     ],
 
+    'transfer' => [
+        'choose_template'   => 'Tria la plantilla de transferència',
+        'second'            => 'Segona',
+        'third'             => 'Tercera',
+    ],
+
     'default' => [
         'description'       => 'Compte per defecte, moneda, idioma de la teva empresa',
         'list_limit'        => 'Registres per pàgina',
@@ -115,6 +121,7 @@ return [
             'invoice_payment_admin'     => 'Plantilla de pagament rebut (s\'envia a l\'administrador)',
             'bill_remind_admin'         => 'Plantilla de recordatori de factura a proveïdor (s\'envia a l\'administrador)',
             'bill_recur_admin'          => 'Plantilla de factura a proveïdor recurrent (s\'envia a l\'administrador)',
+            'revenue_new_customer'      => 'Plantilla d\'ingrés rebut (enviat al client)',
         ],
     ],
 

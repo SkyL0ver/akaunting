@@ -7,8 +7,10 @@
     ]) !!}
         @php
             $filters = [];
+            $filtered = [];
+
             $skipped = [
-                'keys', 'names', 'types', 'routes'
+                'keys', 'names', 'types', 'routes', 'defaults'
             ];
 
             foreach ($class->filters as $filter_name => $filter_values) {
@@ -38,6 +40,10 @@
                     $value = (strpos(trans('general.' . $filter_name), '|') !== false) ? trans_choice('general.' . $filter_name, 1) : trans('general.' . $filter_name);
                 }
 
+                if ($key == 'year') {
+                    $value = trans('general.financial_year');
+                }
+
                 $type = 'select';
 
                 if (isset($class->filters['types']) && !empty($class->filters['types'][$filter_name])) {
@@ -52,6 +58,16 @@
                     $url =  (is_array($route)) ? route($route[0], $route[1]) : route($route);
                 }
 
+                $default_value = null;
+
+                if (isset($class->filters['defaults']) && !empty($class->filters['defaults'][$filter_name])) {
+                    $default_value = $class->filters['defaults'][$filter_name];
+                }
+
+                if ($key == 'year') {
+                    $default_value = \Date::now()->year;
+                }
+
                 $filters[] = [
                     'key' => $key,
                     'value' => $value,
@@ -59,11 +75,27 @@
                     'url' => $url,
                     'values' => $filter_values,
                 ];
+
+                if (!is_null($default_value)) {
+                    $filtered[] = [
+                        'option' => $key,
+                        'operator' => '=',
+                        'value' => $default_value,
+                    ];
+                }
+
+                if (old($key) || request()->get($key)) {
+                    $filtered[] = [
+                        'option' => $key,
+                        'operator' => '=',
+                        'value' => old($key, request()->get($key)),
+                    ];
+                }
             }
         @endphp
 
         <div class="align-items-center">
-            <x-search-string :filters="$filters" />
+            <x-search-string :filters="$filters" :filtered="$filtered" />
         </div>
     {!! Form::close() !!}
 </div>

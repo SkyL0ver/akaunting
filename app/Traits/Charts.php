@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Utilities\Chartjs;
+use Balping\JsonRaw\Raw;
 
 trait Charts
 {
@@ -91,9 +92,15 @@ trait Charts
         ];
     }
 
-    public function getLineChartOptions()
+    public function getLineChartOptions($money_format = true)
     {
-        return [
+        $decimal_mark = str_replace("'", "\\'", config('money.' . setting('default.currency') . '.decimal_mark'));
+        $thousands_separator = str_replace("'", "\\'", config('money.' . setting('default.currency') . '.thousands_separator'));
+        $symbol = str_replace("'", "\\'", config('money.' . setting('default.currency') . '.symbol'));
+        $symbol_first = str_replace("'", "\\'", config('money.' . setting('default.currency') . '.symbol_first'));
+        $precision = str_replace("'", "\\'", config('money.' . setting('default.currency') . '.precision'));
+
+        $options = [
             'tooltips' => [
                 'backgroundColor' => '#000000',
                 'titleFontColor' => '#ffffff',
@@ -109,6 +116,7 @@ trait Charts
                 'yAxes' => [[
                     'barPercentage' => 1.6,
                     'ticks' => [
+                        'beginAtZero' => true,
                         'padding' => 10,
                         'fontColor' => '#9e9e9e',
                     ],
@@ -136,5 +144,121 @@ trait Charts
                 ]],
             ],
         ];
+
+        if ($money_format) {
+            // for Tooltip money format
+            $options['tooltips']['callbacks'] = [
+                    'label' => new Raw("function(tooltipItem, data) {
+                        const moneySettings = {
+                            decimal: '" . $decimal_mark . "',
+                            thousands: '". $thousands_separator . "',
+                            symbol: '" . $symbol . "',
+                            isPrefix: '" . $symbol_first . "',
+                            precision: '" . $precision . "',
+                        };
+
+                        const formattedCurrency = function (input, opt = moneySettings) {
+                             if (typeof input === 'number') {
+                                input = input.toFixed(fixed(opt.precision))
+                            }
+
+                            function fixed (precision) {
+                                return Math.max(0, Math.min(precision, 20));
+                            };
+
+                            function toStr(value) {
+                                return value ? value.toString() : '';
+                            };
+
+                            function numbersToCurrency(numbers, precision) {
+                                var exp = Math.pow(10, precision);
+                                var float = parseFloat(numbers) / exp;
+
+                                return float.toFixed(fixed(precision));
+                            };
+
+                            function joinIntegerAndDecimal (integer, decimal, separator) {
+                                return decimal ? integer + separator + decimal : integer;
+                            };
+
+                            if (typeof input === 'number') {
+                                input = input.toFixed(fixed(opt.precision));
+                            };
+
+                            var negative = input.indexOf('-') >= 0 ? '-' : '';
+                            var numbers = toStr(input).replace(/\D+/g, '') || '0';
+                            var currency = numbersToCurrency(numbers, opt.precision);
+                            var parts = toStr(currency).split('.');
+                            var integer = parts[0].replace(/(\d)(?=(?:\d{3})+\b)/gm,  ('$1' + opt.thousands));
+                            var decimal = parts[1];
+
+                            if (opt.isPrefix == 1) {
+                                return opt.symbol + negative + joinIntegerAndDecimal(integer, decimal, opt.decimal);
+                            }
+
+                            return negative + joinIntegerAndDecimal(integer, decimal, opt.decimal) + opt.symbol;
+                        };
+
+                        return formattedCurrency(tooltipItem.yLabel, moneySettings);
+                    }")
+                ];
+
+            // for Y variable money format
+            $options['scales']['yAxes'][0]['ticks']['callback'] = new Raw("function(value, index, values) {
+                            const moneySettings = {
+                                decimal: '" . $decimal_mark . "',
+                                thousands: '". $thousands_separator . "',
+                                symbol: '" . $symbol . "',
+                                isPrefix: '" . $symbol_first . "',
+                                precision: '" . $precision . "',
+                            };
+
+                            const formattedCurrency = function (input, opt = moneySettings) {
+                                if (typeof input === 'number') {
+                                    input = input.toFixed(fixed(opt.precision))
+                                }
+
+                                function fixed (precision) {
+                                    return Math.max(0, Math.min(precision, 20));
+                                };
+
+                                function toStr(value) {
+                                    return value ? value.toString() : '';
+                                };
+
+                                function numbersToCurrency(numbers, precision) {
+                                    var exp = Math.pow(10, precision);
+                                    var float = parseFloat(numbers) / exp;
+
+                                    return float.toFixed(fixed(precision));
+                                };
+
+                                function joinIntegerAndDecimal (integer, decimal, separator) {
+                                    return decimal ? integer + separator + decimal : integer;
+                                };
+
+                                if (typeof input === 'number') {
+                                    input = input.toFixed(fixed(opt.precision));
+                                };
+
+                                var negative = input.indexOf('-') >= 0 ? '-' : '';
+                                var numbers = toStr(input).replace(/\D+/g, '') || '0';
+                                var currency = numbersToCurrency(numbers, opt.precision);
+                                var parts = toStr(currency).split('.');
+                                var integer = parts[0].replace(/(\d)(?=(?:\d{3})+\b)/gm,  ('$1' + opt.thousands));
+                                var decimal = parts[1];
+
+                                if (opt.isPrefix == 1) {
+                                    return opt.symbol + negative + joinIntegerAndDecimal(integer, decimal, opt.decimal);
+                                } else {
+                                    return negative + joinIntegerAndDecimal(integer, decimal, opt.decimal) + opt.symbol;
+                                }
+                            };
+
+                            return formattedCurrency(value, moneySettings);
+                        }");
+        }
+
+        return $options;
     }
 }

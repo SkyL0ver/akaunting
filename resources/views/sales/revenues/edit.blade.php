@@ -27,7 +27,7 @@
             'files' => true,
             'route' => ['revenues.update', $revenue->id],
             'role' => 'form',
-            'id' => 'revenue',
+            'id' => 'transaction',
             '@submit.prevent' => 'onSubmit',
             '@keydown' => 'form.errors.clear($event.target.name)',
             'class' => 'form-loading-button',
@@ -49,7 +49,7 @@
 
                     {{ Form::textareaGroup('description', trans('general.description')) }}
 
-                    {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, $revenue->category_id, ['required' => 'required', 'path' => route('modals.categories.create') . '?type=income', 'remote_action' => route('categories.index'). '?search=type:income']) }}
+                    {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, $revenue->category_id, ['required' => 'required', 'path' => route('modals.categories.create') . '?type=income', 'remote_action' => route('categories.index'). '?search=type:income enabled:1']) }}
 
                     {{ Form::recurring('edit', $revenue) }}
 
@@ -80,5 +80,5 @@
 @endsection
 
 @push('scripts_start')
-    <script src="{{ asset('public/js/sales/revenues.js?v=' . version('short')) }}"></script>
+    <script src="{{ asset('public/js/banking/transactions.js?v=' . version('short')) }}"></script>
 @endpush

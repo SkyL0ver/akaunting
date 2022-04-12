@@ -10,5 +10,9 @@ return [
     'bank_phone'            => 'Telefon bank',
     'bank_address'          => 'Bank adresse',
     'default_account'       => 'Standardkonto',
+    'incoming'              => 'Indgående',
+    'outgoing'              => 'Udgående',
+    'see_performance'       => 'Oversigt',
+    'create_report'         => 'Hvis du vil se oversigten over den enkelte konto, kan du oprette en indtægt- vs. udgiftsrapport.',
 
 ];

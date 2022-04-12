@@ -7,16 +7,6 @@ use App\Abstracts\Http\FormRequest;
 class Tax extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
-    public function authorize()
-    {
-        return true;
-    }
-
-    /**
      * Get the validation rules that apply to the request.
      *
      * @return array
@@ -30,7 +20,7 @@ class Tax extends FormRequest
             $id = null;
         }
 
-        $company_id = $this->request->get('company_id');
+        $company_id = (int) $this->request->get('company_id');
 
         $type = 'required|string';
 

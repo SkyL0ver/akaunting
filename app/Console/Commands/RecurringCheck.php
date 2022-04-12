@@ -7,10 +7,10 @@ use App\Events\Banking\TransactionRecurring;
 use App\Events\Document\DocumentCreated;
 use App\Events\Document\DocumentRecurring;
 use App\Models\Banking\Transaction;
+use App\Models\Common\Company;
 use App\Models\Common\Recurring;
 use App\Models\Document\Document;
 use App\Utilities\Date;
-use App\Utilities\Overrider;
 use Illuminate\Console\Command;
 
 class RecurringCheck extends Command
@@ -40,7 +40,7 @@ class RecurringCheck extends Command
         config(['laravel-model-caching.enabled' => false]);
 
         // Get all recurring
-        $recurring = Recurring::allCompanies()->with('company')->cursor();
+        $recurring = Recurring::allCompanies()->with('company')->get();
 
         $this->info('Creating recurring records ' . $recurring->count());
 
@@ -83,12 +83,7 @@ class RecurringCheck extends Command
                 continue;
             }
 
-            // Set company id
-            session(['company_id' => $recur->company_id]);
-
-            // Override settings and currencies
-            Overrider::load('settings');
-            Overrider::load('currencies');
+            company($recur->company_id)->makeCurrent();
 
             $today = Date::today();
 
@@ -121,14 +116,13 @@ class RecurringCheck extends Command
             }
         }
 
-        // Unset company_id
-        session()->forget('company_id');
-        setting()->forgetAll();
+        Company::forgetCurrent();
     }
 
     protected function recur($model, $type, $schedule_date)
     {
         \DB::transaction(function () use ($model, $type, $schedule_date) {
+            /** @var Document $clone */
             if (!$clone = $this->getClone($model, $schedule_date)) {
                 return;
             }
@@ -168,10 +162,10 @@ class RecurringCheck extends Command
 
         try {
             return $this->$function($model, $schedule_date);
-        } catch (\Exception | \Throwable | \Swift_RfcComplianceException| \Swift_TransportException | \Illuminate\Database\QueryException $e) {
+        } catch (\Throwable $e) {
             $this->error($e->getMessage());
 
-            logger('Recurring check:: ' . $e->getMessage());
+            report($e);
 
             return false;
         }
@@ -199,6 +193,7 @@ class RecurringCheck extends Command
         $clone->parent_id = $model->id;
         $clone->$date_field = $schedule_date->format('Y-m-d');
         $clone->due_at = $schedule_date->copy()->addDays($diff_days)->format('Y-m-d');
+        $clone->created_from = 'core::recurring';
         $clone->save();
 
         return $clone;
@@ -220,6 +215,7 @@ class RecurringCheck extends Command
 
         $clone->parent_id = $model->id;
         $clone->paid_at = $schedule_date->format('Y-m-d');
+        $clone->created_from = 'core::recurring';
         $clone->save();
 
         return $clone;

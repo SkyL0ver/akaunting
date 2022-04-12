@@ -1,7 +1,7 @@
 <div class="accordion">
     <div class="card border-1 box-shadow-none">
         <div class="card-header background-none collapsed" id="accordion-recurring-and-more-header" data-toggle="collapse" data-target="#accordion-recurring-and-more-body" aria-expanded="false" aria-controls="accordion-recurring-and-more-body">
-            <h4 class="mb-0">{{ trans('general.recurring_and_more') }}</h4>
+            <h4 class="mb-0">{{ trans($textAdvancedAccordion) }}</h4>
         </div>
 
         <div id="accordion-recurring-and-more-body" class="collapse hide" aria-labelledby="accordion-recurring-and-more-header">
@@ -23,7 +23,7 @@
                     @if (!$hideCategory)
                     <div class="{{ $more_class }}">
                         @if (!$hideCategory)
-                            {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, $document->category_id ?? setting('default.' . $categoryType . '_category'), ['required' => 'required', 'path' => route('modals.categories.create') . '?type=' . $categoryType, 'remote_action' => route('categories.index'). '?search=type:' . $categoryType], $more_form_class) }}
+                            {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, $document->category_id ?? setting('default.' . $categoryType . '_category'), ['required' => 'required', 'path' => route('modals.categories.create') . '?type=' . $categoryType, 'remote_action' => route('categories.index'). '?search=type:' . $categoryType . ' enabled:1'], $more_form_class) }}
                         @endif
                     </div>
                     @else

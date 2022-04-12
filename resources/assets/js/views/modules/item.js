@@ -32,11 +32,20 @@ const app = new Vue({
     },
 
     mounted() {
+        this.onReleases(1);
         this.onReviews(1);
     },
 
     data: function () {
         return {
+            releases: {
+                status: false,
+                html: '',
+                pagination: {
+                    current_page: 1,
+                    last_page: 1
+                }
+            },
             reviews: {
                 status: false,
                 html: '',
@@ -61,6 +70,36 @@ const app = new Vue({
     },
 
     methods: {
+        addToCart(alias, subscription_type) {
+            let add_to_cart_promise = Promise.resolve(axios.get(url + '/apps/' + alias + '/' + subscription_type +'/add'));
+
+            add_to_cart_promise.then(response => {
+                if (response.data.success) {
+                    this.$notify({
+                        message: response.data.message,
+                        timeout: 0,
+                        icon: "fas fa-bell",
+                        type: 'success'
+                    });
+                }
+
+                if (response.data.error) {
+                    this.installation.status = 'exception';
+                    this.installation.html = '<div class="text-danger">' + response.data.message + '</div>';
+                }
+
+                // Set steps
+                if (response.data.data) {
+                    this.installation.steps = response.data.data;
+                    this.installation.steps_total = this.installation.steps.length;
+
+                    this.next();
+                }
+            })
+            .catch(error => {
+            });
+        },
+
         onChangeCategory(category) {
             if (!category.length) {
                 return;
@@ -75,6 +114,24 @@ const app = new Vue({
             }
 
             location = path;
+        },
+
+        async onReleases(page) {
+            let releases_promise = Promise.resolve(window.axios.post(url + '/apps/' + app_slug  + '/releases', {
+                page: page
+            }));
+
+            releases_promise.then(response => {
+                if (response.data.success) {
+                    this.releases.status= true;
+                    this.releases.html = response.data.html;
+
+                    this.releases.pagination.current_page = page;
+                    this.releases.pagination.last_page = response.data.data.last_page;
+                }
+            })
+            .catch(error => {
+            });
         },
 
         async onReviews(page) {

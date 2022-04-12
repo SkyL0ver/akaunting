@@ -74,7 +74,7 @@
                                                 @if (!$hideButtonSent)
                                                     @can($permissionUpdate)
                                                         @if($document->status == 'draft')
-                                                            <a href="{{ route($routeButtonSent, $document->id) }}" class="btn btn-white btn-sm header-button-top">
+                                                            <a href="{{ route($routeButtonSent, $document->id) }}" class="btn btn-white btn-sm header-button-top" @click="e => e.target.classList.add('disabled')">
                                                                 {{ trans($textTimelineSentStatusMarkSent) }}
                                                             </a>
                                                         @else
@@ -90,7 +90,7 @@
                                                 @if (!$hideButtonReceived)
                                                     @can($permissionUpdate)
                                                         @if ($document->status == 'draft')
-                                                            <a href="{{ route($routeButtonReceived, $document->id) }}" class="btn btn-danger btn-sm btn-alone header-button-top">
+                                                            <a href="{{ route($routeButtonReceived, $document->id) }}" class="btn btn-danger btn-sm btn-alone header-button-top" @click="e => e.target.classList.add('disabled')">
                                                                 {{ trans($textTimelineSentStatusReceived) }}
                                                             </a>
                                                         @else
@@ -105,7 +105,7 @@
                                         @stack('timeline_viewed_invoice_body_message_start')
                                             <small>{{ trans_choice('general.statuses', 1) . ':' }}</small>
                                             <small>{{ trans('invoices.messages.status.viewed') }}</small>
-                                        @stack('timeline_viewed_invoice_body_message_end'))
+                                        @stack('timeline_viewed_invoice_body_message_end')
                                     @elseif($document->status == 'received')
                                         @stack('timeline_receive_bill_body_message_start')
                                             <small>{{ trans_choice('general.statuses', 1) .  ':'  }}</small>
@@ -125,7 +125,7 @@
                                     @stack('timeline_sent_body_button_email_start')
                                         @if (!$hideButtonEmail)
                                             @if($document->contact_email)
-                                                <a href="{{ route($routeButtonEmail, $document->id) }}" class="btn btn-danger btn-sm header-button-top">
+                                                <a href="{{ route($routeButtonEmail, $document->id) }}" class="btn btn-danger btn-sm header-button-top" @click="e => e.target.classList.add('disabled')">
                                                     {{ trans($textTimelineSendStatusMail) }}
                                                 </a>
                                             @else
@@ -193,7 +193,7 @@
                                         @stack('timeline_get_paid_body_button_pay_start')
                                             @if (!$hideButtonPaid)
                                                 @can($permissionUpdate)
-                                                    <a href="{{ route($routeButtonPaid, $document->id) }}" class="btn btn-white btn-sm header-button-top">
+                                                    <a href="{{ route($routeButtonPaid, $document->id) }}" class="btn btn-white btn-sm header-button-top" @click="e => e.target.classList.add('disabled')">
                                                         {{ trans($textTimelineGetPaidMarkPaid) }}
                                                     </a>
                                                 @endcan

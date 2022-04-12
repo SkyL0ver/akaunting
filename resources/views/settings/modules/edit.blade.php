@@ -21,12 +21,12 @@
                     @foreach($module->get('settings') as $field)
                         @php $type = $field['type']; @endphp
 
-                        @if (($type == 'textGroup') || ($type == 'emailGroup') || ($type == 'passwordGroup'))
+                        @if (($type == 'textGroup') || ($type == 'emailGroup') || ($type == 'passwordGroup') || ($type == 'numberGroup'))
                             {{ Form::$type($field['name'], trans($field['title']), $field['icon'], $field['attributes']) }}
                         @elseif ($type == 'textareaGroup')
                             {{ Form::$type($field['name'], trans($field['title'])) }}
                         @elseif ($type == 'selectGroup')
-                            {{ Form::$type($field['name'], trans($field['title']), $field['icon'], $field['values'], $field['selected'], $field['attributes']) }}
+                            {{ Form::$type($field['name'], trans($field['title']), $field['icon'], $field['values'], isset($setting[$field['name']]) ? $setting[$field['name']] : $field['selected'], $field['attributes']) }}
                         @elseif ($type == 'radioGroup')
                             {{ Form::$type($field['name'], trans($field['title']), isset($setting[$field['name']]) ? $setting[$field['name']] : 1, trans($field['enable']), trans($field['disable']), $field['attributes']) }}
                         @elseif ($type == 'checkboxGroup')

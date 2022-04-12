@@ -19,12 +19,16 @@ class SendDocumentPaymentNotification
             return;
         }
 
+        if (!empty($event->request['mark_paid'])) {
+            return;
+        }
+
         $document = $event->document;
         $transaction = $document->transactions()->latest()->first();
 
         // Notify the customer
         if ($document->contact && !empty($document->contact_email)) {
-            $document->contact->notify(new Notification($document, $transaction, "{$document->type}_payment_customer"));
+            $document->contact->notify(new Notification($document, $transaction, "{$document->type}_payment_customer"), true);
         }
 
         // Notify all users assigned to this company

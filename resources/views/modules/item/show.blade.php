@@ -15,7 +15,7 @@
             <div class="row">
                 <div class="col-xs-6 col-sm-6">
                     <div class="float-left">
-                        <h3>{{ $module->name }}</h3>
+                        <h3>{!! $module->name !!}</h3>
                     </div>
                 </div>
 
@@ -39,6 +39,7 @@
                             {{ trans('general.description') }}
                         </a>
                     </li>
+
                     @if ($module->installation)
                         <li class="nav-item">
                             <a class="nav-link mb-sm-2 mb-md-0" href="#installation" data-toggle="tab" aria-selected="false">
@@ -46,6 +47,7 @@
                             </a>
                         </li>
                     @endif
+
                     @if ($module->faq)
                         <li class="nav-item">
                             <a class="nav-link mb-sm-2 mb-md-0" href="#faq" data-toggle="tab" aria-selected="false">
@@ -53,6 +55,7 @@
                             </a>
                         </li>
                     @endif
+
                     @if ($module->changelog)
                         <li class="nav-item">
                             <a class="nav-link mb-sm-2 mb-md-0" href="#changelog" data-toggle="tab" aria-selected="false">
@@ -60,8 +63,9 @@
                             </a>
                         </li>
                     @endif
+
                     <li class="nav-item">
-                        <a class="nav-link mb-sm-2 mb-md-0" href="#review" data-toggle="tab" aria-selected="false">
+                        <a class="nav-link mb-sm-2 mb-md-0" href="#review" data-toggle="tab" id="tab-{{ $module->slug }}-review" aria-selected="false">
                             {{ trans('modules.tab.reviews') }} @if ($module->total_review) ({{ $module->total_review }}) @endif
                         </a>
                     </li>
@@ -75,7 +79,7 @@
                             {!! $module->description !!}
 
                             @if($module->screenshots || $module->video)
-                               <akaunting-carousel :name="'{{ $module->name }}'" :height="'430px'" arrow="always"
+                               <akaunting-carousel name="{!! $module->name !!}" height="430px" arrow="always"
                                     @if($module->video)
                                         @php
                                             if (strpos($module->video->link, '=') !== false) {
@@ -104,7 +108,71 @@
 
                          @if ($module->changelog)
                             <div class="tab-pane fade" id="changelog">
-                                {!! $module->changelog !!}
+                                @php
+                                    $releases = $module->app_releases;
+                                @endphp
+
+                                <div id="releases" class="clearfix" v-if="releases.status" v-html="releases.html"></div>
+
+                                <div id="releases" class="clearfix" v-else>
+                                    @include('partials.modules.releases')
+                                </div>
+
+                                @php
+                                    $release_first_item = count($releases->data) > 0 ? ($releases->current_page - 1) * $releases->per_page + 1 : null;
+                                    $release_last_item = count($releases->data) > 0 ? $release_first_item + count($releases->data) - 1 : null;
+                                @endphp
+
+                                @if (!empty($release_first_item))
+                                    @stack('pagination_start')
+
+                                    <div class="row mt-4">
+                                        <div class="col-md-6">
+                                            <span class="table-text d-lg-block">
+                                                {{ trans('pagination.showing', ['first' => $release_first_item, 'last' => $release_last_item, 'total' => $releases->total, 'type' => strtolower(trans('modules.tab.changelog'))]) }}
+                                            </span>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <ul class="pagination float-right">
+                                                {{-- Previous Page Link --}}
+                                                <li class="page-item disabled" v-if="releases.pagination.current_page == 1">
+                                                    <span class="page-link">&laquo;</span>
+                                                </li>
+                                                <li class="page-item" v-else>
+                                                    <button type="button" class="page-link" @click="onReleases(releases.pagination.current_page - 1)" rel="prev">&laquo;</button>
+                                                </li>
+
+                                                {{-- Pagination Elements --}}
+                                                @for ($page = 1; $page <= $releases->last_page; $page++)
+                                                    <li class="page-item" :class="[{'active': releases.pagination.current_page == {{ $page }}}]" v-if="releases.pagination.current_page == {{ $page }}">
+                                                        <span class="page-link">{{ $page }}</span>
+                                                    </li>
+
+                                                    <li class="page-item" v-else>
+                                                        <button type="button" class="page-link" @click="onReleases({{ $page }})" data-page="{{ $page }}">{{ $page }}</button>
+                                                    </li>
+                                                @endfor
+
+                                                {{-- Next Page Link --}}
+                                                <li class="page-item" v-if="releases.pagination.last_page != releases.pagination.current_page">
+                                                    <button type="button" class="page-link" @click="onReleases(releases.pagination.current_page + 1)" rel="next">&raquo;</button>
+                                                </li>
+                                                <li class="page-item disabled" v-else>
+                                                    <span class="page-link">&raquo;</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    @stack('pagination_end')
+                                @else
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <small>{{ trans('general.no_records') }}</small>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                          @endif
 
@@ -149,6 +217,7 @@
                                                 <li class="page-item" :class="[{'active': reviews.pagination.current_page == {{ $page }}}]" v-if="reviews.pagination.current_page == {{ $page }}">
                                                     <span class="page-link">{{ $page }}</span>
                                                 </li>
+
                                                 <li class="page-item" v-else>
                                                     <button type="button" class="page-link" @click="onReviews({{ $page }})" data-page="{{ $page }}">{{ $page }}</button>
                                                 </li>
@@ -194,61 +263,17 @@
         <div class="col-md-4">
             <h3>{{ trans_choice('general.actions', 1) }}</h3>
 
+            @include('partials.modules.show.actions_header')
+
             <div class="card">
                 <div class="card-body">
-                    <div class="text-center">
-                        <strong>
-                            <div class="text-xl">
-                                @if ($module->price == '0.0000')
-                                    {{ trans('modules.free') }}
-                                @else
-                                    {!! $module->price_prefix !!}
-
-                                    @if (isset($module->special_price))
-                                        <del class="text-danger">{{ $module->price }}</del>
-                                        {{ $module->special_price }}
-                                    @else
-                                        {{ $module->price }}
-                                    @endif
-                                    {!! $module->price_suffix !!}
-                                @endif
-                            </div>
-                        </strong>
-                    </div>
+                    @include('partials.modules.show.price')
                 </div>
+            </div>
 
-                <div class="card-footer">
-                    @if ($installed)
-                        @can('delete-modules-item')
-                            <a href="{{ route('apps.app.uninstall', $module->slug) }}" class="btn btn-block btn-danger">{{ trans('modules.button.uninstall') }}</a>
-                        @endcan
-
-                        @can('update-modules-item')
-                            @if ($enable)
-                                <a href="{{ route('apps.app.disable', $module->slug) }}" class="btn btn-block btn-warning">{{ trans('modules.button.disable') }}</a>
-                            @else
-                                <a href="{{ route('apps.app.enable', $module->slug) }}" class="btn btn-block btn-success">{{ trans('modules.button.enable') }}</a>
-                            @endif
-                        @endcan
-                    @else
-                        @can('create-modules-item')
-                            @if ($module->install)
-                                <button type="button" @click="onInstall('{{ $module->action_url }}', '{{ $module->slug }}', '{{ $module->name }}', '{{ $module->version }}')" class="btn btn-success btn-block" id="install-module">
-                                    {{ trans('modules.install') }}
-                                </button>
-                            @else
-                                <a href="{{ $module->action_url }}" class="btn btn-success btn-block" target="_blank">
-                                    {{ trans('modules.buy_now') }}
-                                </a>
-                            @endif
-                        @endcan
-                    @endif
-
-                    @if (!empty($module->purchase_desc))
-                        <div class="text-center mt-3">
-                            {!! $module->purchase_desc !!}
-                        </div>
-                    @endif
+            <div class="card">
+                <div class="card-body">
+                    @include('partials.modules.show.buttons')
                 </div>
             </div>
 
@@ -263,30 +288,39 @@
                                 <td class="col-7 text-right"><a href="{{ route('apps.vendors.show', $module->vendor->slug) }}">{{ $module->vendor_name }}</a></td>
                             </tr>
                         @endif
+
                         @if ($module->version)
                             <tr class="row">
                                 <th class="col-5">{{ trans('footer.version') }}</th>
                                 <td class="col-7 text-right">{{ $module->version }}</td>
                             </tr>
                         @endif
+
                         @if ($module->created_at)
                             <tr class="row">
                                 <th class="col-5">{{ trans('modules.added') }}</th>
                                 <td class="col-7 text-right long-texts">@date($module->created_at)</td>
                             </tr>
                         @endif
+
                         @if ($module->updated_at)
                             <tr class="row">
                                 <th class="col-5">{{ trans('modules.updated') }}</th>
                                 <td class="col-7 text-right">{{ Date::parse($module->updated_at)->diffForHumans() }}</td>
                             </tr>
                         @endif
-                        @if ($module->category)
+
+                        @if ($module->categories)
                             <tr class="row">
-                                <th class="col-5">{{ trans_choice('general.categories', 1) }}</th>
-                                <td class="col-7 text-right"><a href="{{ route('apps.categories.show', $module->category->slug) }}">{{ $module->category->name }}</a></td>
+                                <th class="col-5">{{ trans_choice('general.categories', (count($module->categories) > 1) ? 2 : 1) }}</th>
+                                <td class="col-7 text-right">
+                                    @foreach ($module->categories as $module_category)
+                                        <a href="{{ route('apps.categories.show', $module_category->slug) }}">{{ $module_category->name }}</a> </br>
+                                    @endforeach
+                                </td>
                             </tr>
                         @endif
+
                         <tr class="row">
                             <th class="col-5">{{ trans('modules.documentation') }}</th>
                             @if ($module->documentation)
@@ -294,7 +328,7 @@
                                     <a href="{{ route('apps.docs.show', $module->slug) }}">{{ trans('modules.view') }}</a>
                                 </td>
                             @else
-                               <th class="col-7 text-right">{{ trans('general.na') }}</th>
+                               <td class="col-7 text-right">{{ trans('general.na') }}</td>
                             @endif
                         </tr>
                     </tbody>
@@ -332,6 +366,16 @@
 @push('scripts_start')
     <script type="text/javascript">
         var app_slug = "{{ $module->slug }}";
+
+        $(document).on("click", "#app-pricing .nav-link", function() {
+            $('#button-monthly').removeClass('d-none');
+            $('#button-yearly').addClass('d-none');
+
+            if ($(this).attr('href') == '#yearly') {
+                $('#button-yearly').removeClass('d-none');
+                $('#button-monthly').addClass('d-none');
+            }
+        });
     </script>
 
     <script src="{{ asset('public/js/modules/item.js?v=' . version('short')) }}"></script>

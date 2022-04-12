@@ -3,11 +3,14 @@
 namespace Database\Seeds;
 
 use App\Abstracts\Model;
-use App\Models\Common\EmailTemplate;
+use App\Jobs\Setting\CreateEmailTemplate;
+use App\Traits\Jobs;
 use Illuminate\Database\Seeder;
 
 class EmailTemplates extends Seeder
 {
+    use Jobs;
+
     /**
      * Run the database seeds.
      *
@@ -72,17 +75,23 @@ class EmailTemplates extends Seeder
                 'class' => 'App\Notifications\Purchase\Bill',
                 'name' => 'settings.email.templates.bill_recur_admin',
             ],
+            [
+                'alias' => 'revenue_new_customer',
+                'class' => 'App\Notifications\Sale\Revenue',
+                'name' => 'settings.email.templates.revenue_new_customer',
+            ],
         ];
 
         foreach ($templates as $template) {
-            EmailTemplate::create([
+            $this->dispatch(new CreateEmailTemplate([
                 'company_id' => $company_id,
                 'alias' => $template['alias'],
                 'class' => $template['class'],
                 'name' => $template['name'],
                 'subject' => trans('email_templates.' . $template['alias'] . '.subject'),
                 'body' => trans('email_templates.' . $template['alias'] . '.body'),
-            ]);
+                'created_from' => 'core::seed',
+            ]));
         }
     }
 }

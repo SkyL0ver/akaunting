@@ -5,6 +5,7 @@ namespace App\Abstracts\View\Components;
 use App\Abstracts\View\Components\Document as Base;
 use App\Models\Common\Contact;
 use App\Models\Document\Document;
+use App\Models\Setting\Currency;
 use App\Traits\Documents;
 use Date;
 use Illuminate\Support\Str;
@@ -17,9 +18,18 @@ abstract class DocumentForm extends Base
 
     public $document;
 
+    public $currencies;
+
+    public $currency;
+
+    public $currency_code;
+
     /** Advanced Component Start */
     /** @var string */
     public $categoryType;
+
+    /** @var string */
+    public $textAdvancedAccordion;
 
     /** @var bool */
     public $hideRecurring;
@@ -197,6 +207,9 @@ abstract class DocumentForm extends Base
 
     /** @var bool */
     public $isPurchasePrice;
+
+    /** @var int */
+    public $searchCharLimit;
     /** Items Component End */
 
     /**
@@ -205,9 +218,9 @@ abstract class DocumentForm extends Base
      * @return void
      */
     public function __construct(
-        $type, $document = false,
+        $type, $document = false, $currencies = false, $currency = false, $currency_code = false,
         /** Advanced Component Start */
-        string $categoryType = '', bool $hideRecurring = false, bool $hideCategory = false, bool $hideAttachment = false,
+        string $categoryType = '', string $textAdvancedAccordion = '', bool $hideRecurring = false, bool $hideCategory = false, bool $hideAttachment = false,
         /** Advanced Component End */
         /** Company Component Start */
         bool $hideLogo = false, bool $hideDocumentTitle = false, bool $hideDocumentSubheading = false, bool $hideCompanyEdit = false,
@@ -230,14 +243,18 @@ abstract class DocumentForm extends Base
         bool $hideItems = false, bool $hideName = false, bool $hideDescription = false, bool $hideQuantity = false,
         bool $hidePrice = false, bool $hideDiscount = false, bool $hideAmount = false,
         bool $hideEditItemColumns = false,
-        bool $isSalePrice = false, bool $isPurchasePrice = false
+        bool $isSalePrice = false, bool $isPurchasePrice = false, int $searchCharLimit = 0
         /** Items Component End */
     ) {
         $this->type = $type;
         $this->document = $document;
+        $this->currencies = $this->getCurrencies($currencies);
+        $this->currency = $this->getCurrency($document, $currency, $currency_code);
+        $this->currency_code = !empty($this->currency) ? $this->currency->code : setting('default.currency');
 
         /** Advanced Component Start */
         $this->categoryType = $this->getCategoryType($type, $categoryType);
+        $this->textAdvancedAccordion = $this->getTextAdvancedAccordion($type, $textAdvancedAccordion);
         $this->hideRecurring = $hideRecurring;
         $this->hideCategory = $hideCategory;
         $this->hideAttachment = $hideAttachment;
@@ -268,7 +285,7 @@ abstract class DocumentForm extends Base
         /** Content Component End */
 
         /** Metadata Component Start */
-        $this->contacts = $this->getContacts($type, $contacts);
+        $this->contacts = $this->getContacts($type, $document, $contacts);
         $this->contact = $this->getContact($contact, $document);
         $this->contactType = $this->getContactType($type, $contactType);
 
@@ -311,7 +328,38 @@ abstract class DocumentForm extends Base
         $this->hideEditItemColumns = $hideEditItemColumns;
         $this->isSalePrice = $isSalePrice;
         $this->isPurchasePrice = $isPurchasePrice;
+        $this->searchCharLimit = $this->getSearchCharLimit($type, $searchCharLimit);
         /** Items Component End */
+    }
+
+    protected function getCurrencies($currencies)
+    {
+        if (!empty($currencies)) {
+            return $currencies;
+        }
+
+        return Currency::enabled()->pluck('name', 'code');
+    }
+
+    protected function getCurrency($document, $currency, $currency_code)
+    {
+        if (!empty($currency)) {
+            return $currency;
+        }
+
+        if (!empty($currency_code)) {
+            $currency = Currency::where('code', $currency_code)->first();
+        }
+
+        if (empty($currency) && !empty($document)) {
+            $currency = Currency::where('code', $document->currency_code)->first();
+        }
+
+        if (empty($currency)) {
+            $currency = Currency::where('code', setting('default.currency'))->first();
+        }
+
+        return $currency;
     }
 
     protected function getRouteStore($type, $routeStore)
@@ -379,7 +427,22 @@ abstract class DocumentForm extends Base
         return config('type.' . $type . '.category_type');
     }
 
-    protected function getContacts($type, $contacts)
+    protected function getTextAdvancedAccordion($type, $textAdvancedAccordion)
+    {
+        if (!empty($textAdvancedAccordion)) {
+            return $textAdvancedAccordion;
+        }
+
+        $translation = $this->getTextFromConfig($type, 'advanced_accordion');
+
+        if (!empty($translation)) {
+            return $translation;
+        }
+
+        return 'general.recurring_and_more';
+    }
+
+    protected function getContacts($type, $document, $contacts)
     {
         if (!empty($contacts)) {
             return $contacts;
@@ -391,6 +454,10 @@ abstract class DocumentForm extends Base
             $contacts = Contact::$contact_type()->enabled()->orderBy('name')->take(setting('default.select_limit'))->get();
         } else {
             $contacts = Contact::enabled()->orderBy('name')->take(setting('default.select_limit'))->get();
+        }
+
+        if (!empty($document) && ($document->contact && !$contacts->contains('id', $document->contact_id))) {
+            $contacts->push($document->contact);
         }
 
         return $contacts;
@@ -715,6 +782,12 @@ abstract class DocumentForm extends Base
             return $textItems;
         }
 
+        if (setting($this->getSettingKey($type, 'item_name')) !== null && 
+            (trans(setting($this->getSettingKey($type, 'item_name'))) != setting($this->getSettingKey($type, 'item_name')))
+        ) {
+            return setting($this->getSettingKey($type, 'item_name'));
+        }
+
         $translation = $this->getTextFromConfig($type, 'items');
 
         if (!empty($translation)) {
@@ -739,6 +812,12 @@ abstract class DocumentForm extends Base
             return $textQuantity;
         }
 
+        if (setting($this->getSettingKey($type, 'quantity_name')) !== null && 
+            (trans(setting($this->getSettingKey($type, 'quantity_name'))) != setting($this->getSettingKey($type, 'quantity_name')))
+        ) {
+            return setting($this->getSettingKey($type, 'quantity_name'));
+        }
+
         $translation = $this->getTextFromConfig($type, 'quantity');
 
         if (!empty($translation)) {
@@ -761,6 +840,12 @@ abstract class DocumentForm extends Base
             }
 
             return $textPrice;
+        }
+
+        if (setting($this->getSettingKey($type, 'price_name')) !== null && 
+            (trans(setting($this->getSettingKey($type, 'price_name'))) != setting($this->getSettingKey($type, 'price_name')))
+        ) {
+            return setting($this->getSettingKey($type, 'price_name'));
         }
 
         $translation = $this->getTextFromConfig($type, 'price');
@@ -954,6 +1039,10 @@ abstract class DocumentForm extends Base
             return $footerSetting;
         }
 
+        if (!empty($this->document)) {
+            return $this->document->footer;
+        }
+
         return setting($this->getSettingKey($this->type, 'footer'));
     }
 
@@ -963,6 +1052,31 @@ abstract class DocumentForm extends Base
             return $notesSetting;
         }
 
+        if (!empty($this->document)) {
+            return $this->document->notes;
+        }
+
         return setting($this->getSettingKey($this->type, 'notes'));
+    }
+
+    protected function getSearchCharLimit($type, $searchCharLimit)
+    {
+        if (!empty($searchCharLimit)) {
+            return $searchCharLimit;
+        }
+
+        // if you use settting translation
+        if ($settingCharLimit = setting($this->getSettingKey($type, 'item_search_chart_limit'), false)) {
+            return $settingCharLimit;
+        }
+
+        $hide = $this->getHideFromConfig($type, 'item_search_char_limit');
+
+        if ($hide) {
+            return $hide;
+        }
+
+        // @todo what return value invoice or always false??
+        return setting('invoice.item_search_char_limit', $searchCharLimit);
     }
 }

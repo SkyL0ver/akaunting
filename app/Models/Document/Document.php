@@ -26,7 +26,7 @@ class Document extends Model
 
     protected $table = 'documents';
 
-    protected $appends = ['attachment', 'amount_without_tax', 'discount', 'paid', 'received_at', 'status_label', 'sent_at'];
+    protected $appends = ['attachment', 'amount_without_tax', 'discount', 'paid', 'received_at', 'status_label', 'sent_at', 'reconciled', 'contact_location'];
 
     protected $dates = ['deleted_at', 'issued_at', 'due_at'];
 
@@ -41,16 +41,22 @@ class Document extends Model
         'amount',
         'currency_code',
         'currency_rate',
+        'category_id',
         'contact_id',
         'contact_name',
         'contact_email',
         'contact_tax_number',
         'contact_phone',
         'contact_address',
+        'contact_country',
+        'contact_state',
+        'contact_zip_code',
+        'contact_city',
         'notes',
-        'category_id',
-        'parent_id',
         'footer',
+        'parent_id',
+        'created_from',
+        'created_by',
     ];
 
     /**
@@ -138,6 +144,11 @@ class Document extends Model
         return $this->totals()->orderBy('sort_order');
     }
 
+    public function parent()
+    {
+        return $this->belongsTo('App\Models\Document\Document', 'parent_id');
+    }
+
     public function scopeLatest(Builder $query)
     {
         return $query->orderBy('issued_at', 'desc');
@@ -170,17 +181,17 @@ class Document extends Model
 
     public function scopeType(Builder $query, string $type)
     {
-        return $query->where($this->table . '.type', '=', $type);
+        return $query->where($this->qualifyColumn('type'), '=', $type);
     }
 
     public function scopeInvoice(Builder $query)
     {
-        return $query->where($this->table . '.type', '=', self::INVOICE_TYPE);
+        return $query->where($this->qualifyColumn('type'), '=', self::INVOICE_TYPE);
     }
 
     public function scopeBill(Builder $query)
     {
-        return $query->where($this->table . '.type', '=', self::BILL_TYPE);
+        return $query->where($this->qualifyColumn('type'), '=', self::BILL_TYPE);
     }
 
     /**
@@ -266,23 +277,52 @@ class Document extends Model
         }
 
         $paid = 0;
-        $reconciled = $reconciled_amount = 0;
 
         $code = $this->currency_code;
-        $rate = config('money.' . $code . '.rate');
+        $rate = $this->currency_rate;
         $precision = config('money.' . $code . '.precision');
 
         if ($this->transactions->count()) {
-            foreach ($this->transactions as $item) {
-                $amount = $item->amount;
+            foreach ($this->transactions as $transaction) {
+                $amount = $transaction->amount;
 
-                if ($code != $item->currency_code) {
-                    $amount = $this->convertBetween($amount, $item->currency_code, $item->currency_rate, $code, $rate);
+                if ($code != $transaction->currency_code) {
+                    $amount = $this->convertBetween($amount, $transaction->currency_code, $transaction->currency_rate, $code, $rate);
                 }
 
                 $paid += $amount;
+            }
+        }
 
-                if ($item->reconciled) {
+        return round($paid, $precision);
+    }
+
+    /**
+     * Get the reconcilation status.
+     *
+     * @return integer
+     */
+    public function getReconciledAttribute()
+    {
+        if (empty($this->amount)) {
+            return 0;
+        }
+
+        $reconciled = $reconciled_amount = 0;
+
+        $code = $this->currency_code;
+        $rate = $this->currency_rate;
+        $precision = config('money.' . $code . '.precision');
+
+        if ($this->transactions->count()) {
+            foreach ($this->transactions as $transaction) {
+                $amount = $transaction->amount;
+
+                if ($code != $transaction->currency_code) {
+                    $amount = $this->convertBetween($amount, $transaction->currency_code, $transaction->currency_rate, $code, $rate);
+                }
+
+                if ($transaction->reconciled) {
                     $reconciled_amount = +$amount;
                 }
             }
@@ -292,9 +332,7 @@ class Document extends Model
             $reconciled = 1;
         }
 
-        $this->setAttribute('reconciled', $reconciled);
-
-        return round($paid, $precision);
+        return $reconciled;
     }
 
     /**
@@ -361,6 +399,34 @@ class Document extends Model
         });
 
         return $amount;
+    }
+
+    public function getTemplatePathAttribute($value = null)
+    {
+        return $value ?: 'sales.invoices.print_' . setting('invoice.template');
+    }
+
+    public function getContactLocationAttribute()
+    {
+        $location = [];
+
+        if ($this->contact_city) {
+            $location[] = $this->contact_city;
+        }
+
+        if ($this->contact_zip_code) {
+            $location[] = $this->contact_zip_code;
+        }
+
+        if ($this->contact_state) {
+            $location[] = $this->contact_state;
+        }
+
+        if ($this->contact_country) {
+            $location[] = trans('countries.' . $this->contact_country);
+        }
+
+        return implode(', ', $location);
     }
 
     protected static function newFactory(): Factory

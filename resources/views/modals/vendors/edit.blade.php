@@ -19,7 +19,9 @@
 
         {{ Form::selectGroup('currency_code', trans_choice('general.currencies', 1), 'exchange-alt', $currencies, $vendor->currency_code) }}
 
-        {{ Form::textareaGroup('address', trans('general.address')) }}
+        {{ Form::textareaGroup('address', trans('general.address'), null, $vendor->address) }}
+
+        {{ Form::selectGroup('country', trans_choice('general.countries', 1), 'globe-americas', trans('countries'), $vendor->country, []) }}
 
         {{ Form::hidden('type', 'vendor') }}
         {!! Form::hidden('enabled', '1', []) !!}

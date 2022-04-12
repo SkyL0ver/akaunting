@@ -22,11 +22,6 @@ class Companies extends BulkAction
             'message' => 'bulk_actions.message.disable',
             'permission' => 'update-common-companies',
         ],
-        'delete' => [
-            'name' => 'general.delete',
-            'message' => 'bulk_actions.message.delete',
-            'permission' => 'delete-common-companies',
-        ],
     ];
 
     public function enable($request)
@@ -35,7 +30,7 @@ class Companies extends BulkAction
 
         foreach ($companies as $company) {
             try {
-                $this->dispatch(new UpdateCompany($company, $request->merge(['enabled' => 1]), session('company_id')));
+                $this->dispatch(new UpdateCompany($company, $request->merge(['enabled' => 1])));
             } catch (\Exception $e) {
                 flash($e->getMessage())->error()->important();
             }
@@ -48,7 +43,7 @@ class Companies extends BulkAction
 
         foreach ($companies as $company) {
             try {
-                $this->dispatch(new UpdateCompany($company, $request->merge(['enabled' => 0]), session('company_id')));
+                $this->dispatch(new UpdateCompany($company, $request->merge(['enabled' => 0])));
             } catch (\Exception $e) {
                 flash($e->getMessage())->error()->important();
             }
@@ -61,7 +56,7 @@ class Companies extends BulkAction
 
         foreach ($companies as $company) {
             try {
-                $this->dispatch(new DeleteCompany($company, session('company_id')));
+                $this->dispatch(new DeleteCompany($company));
             } catch (\Exception $e) {
                 flash($e->getMessage())->error()->important();
             }

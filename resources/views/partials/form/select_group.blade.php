@@ -46,9 +46,15 @@
         @if (!empty($attributes['visible-change']))
         @visible-change="{{ $attributes['visible-change'] }}"
         @endif
-        
+
         @if (isset($attributes['readonly']))
         :readonly="{{ $attributes['readonly'] }}"
+        @endif
+
+        @if (isset($attributes['clearable']))
+        :clearable="{{ $attributes['clearable'] }}"
+        @else
+        clearable
         @endif
 
         @if (isset($attributes['disabled']))
@@ -67,6 +73,10 @@
 
         no-data-text="{{ trans('general.no_data') }}"
         no-matching-data-text="{{ trans('general.no_matching_data') }}"
+
+        @if (isset($attributes['sort-options']))
+        :sort-options="{{ $attributes['sort-options'] }}"
+        @endif
     ></akaunting-select>
 
 @stack($name . '_input_end')

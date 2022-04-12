@@ -3,40 +3,20 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\ShouldUpdate;
 use App\Models\Banking\Reconciliation;
 use App\Models\Banking\Transaction;
 
-class UpdateReconciliation extends Job
+class UpdateReconciliation extends Job implements ShouldUpdate
 {
-    protected $reconciliation;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $reconciliation
-     * @param  $request
-     */
-    public function __construct($reconciliation, $request)
-    {
-        $this->reconciliation = $reconciliation;
-        $this->request = $this->getRequestInstance($request);
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return Reconciliation
-     */
-    public function handle()
+    public function handle(): Reconciliation
     {
         \DB::transaction(function () {
-            $reconcile = $this->request->get('reconcile');
+            $reconcile = (int) $this->request->get('reconcile');
             $transactions = $this->request->get('transactions');
 
-            $this->reconciliation->reconciled = $reconcile ? 1 : 0;
-            $this->reconciliation->save();
+            $this->model->reconciled = $reconcile;
+            $this->model->save();
 
             if ($transactions) {
                 foreach ($transactions as $key => $value) {
@@ -47,12 +27,12 @@ class UpdateReconciliation extends Job
                     $t = explode('_', $key);
 
                     $transaction = Transaction::find($t[1]);
-                    $transaction->reconciled = $reconcile ? 1 : 0;
+                    $transaction->reconciled = $reconcile;
                     $transaction->save();
                 }
             }
         });
 
-        return $this->reconciliation;
+        return $this->model;
     }
 }

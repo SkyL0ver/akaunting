@@ -2,19 +2,30 @@
 
 return [
 
-    'api_key'               => 'Kunci API',
+    'api_key'               => 'Token API',
     'my_apps'               => 'Aplikasi saya',
     'pre_sale'              => 'Pra Penjualan',
     'top_paid'              => 'Dibayar atas',
     'new'                   => 'Baru',
     'top_free'              => 'Gratis Teratas',
     'free'                  => 'GRATIS',
+    'monthly'               => 'Bulanan',
+    'yearly'                => 'Tahunan',
+    'yearly_pricing'        => 'Harga Tahunan',
+    'monthly_price'         => 'dari :price',
+    'per_month'             => 'per bulan',
+    'billed_yearly'         => 'Ditagih tahunan',
+    'billed_monthly'        => 'Ditagih Bulanan',
+    'save_year'             => 'Kamu hemat <strong>:price</strong> setahun!',
+    'if_paid_year'          => 'Atau <strong>:price/mo</strong> jika dibayar tahunan',
+    'information_monthly'   => 'Pilihan ini hanya untuk <strong>Layanan Cloud</strong>',
     'install'               => 'Pasang',
     'buy_now'               => 'Beli Sekarang',
-    'get_api_key'           => '<a href=":url" target="_blank">Klik disini</a> untuk mendapatkan Kunci API.',
+    'get_api_key'           => '<a href=":url" target="_blank">Klik disini</a> untuk mendapatkan Token API.',
     'no_apps'               => 'Belum ada aplikasi dalam kategori ini.',
     'become_developer'      => 'Apakah Anda seorang pengembang? <a href=":url" target="_blank"> Di Sini </a> Anda dapat belajar cara membuat aplikasi dan mulai menjual hari ini!',
     'recommended_apps'      => 'Aplikasi yang direkomendasikan',
+    'can_not_install'       => 'Langganan bulanan hanya tersedia untuk layanan Cloud. <a href="https://akaunting.com/upgrade-to-yearly" target="_blank">Pelajari lebih jauh.</a>',
 
     'about'                 => 'Tentang',
 
@@ -27,13 +38,13 @@ return [
 
     'installed'             => ':module terpasang',
     'uninstalled'           => ':module dihapus',
-    //'updated'               => ':module updated',
+    'updated_2'             => ':module diperbarui',
     'enabled'               => ':module diaktifkan',
     'disabled'              => ':module dinonaktifkan',
 
     'tab' => [
         'installation'      => 'Instalasi',
-        'faq'               => 'FAQ',
+        'faq'               => 'Tanya jawab',
         'changelog'         => 'Perubahan Catatan',
         'reviews'           => 'Ulasan',
     ],

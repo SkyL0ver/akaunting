@@ -29,7 +29,15 @@
 
                 {{ Form::textGroup('website', trans('general.website'), 'globe',[]) }}
 
-                {{ Form::textareaGroup('address', trans('general.address')) }}
+                {{ Form::textareaGroup('address', trans('general.address'), '', $customer->address, ['rows' => '2', 'v-model' => 'form.address']) }}
+
+                {{ Form::textGroup('city', trans_choice('general.cities', 1), 'city', []) }}
+
+                {{ Form::textGroup('zip_code', trans('general.zip_code'), 'mail-bulk', []) }}
+
+                {{ Form::textGroup('state', trans('general.state'), 'city', []) }}
+
+                {{ Form::selectGroup('country', trans_choice('general.countries', 1), 'globe-americas', trans('countries'), $customer->country, ['model' => 'form.country']) }}
 
                 {{ Form::textGroup('reference', trans('general.reference'), 'file', []) }}
 
@@ -50,9 +58,10 @@
                                 </label>
                             @else
                                 {{ Form::checkbox('create_user', '1', null, [
+                                    'v-model' => 'form.create_user',
                                     'id' => 'create_user',
                                     'class' => 'custom-control-input',
-                                    'v-on:input' => 'onCanLogin($event)'
+                                    '@input' => 'onCanLogin($event)'
                                 ]) }}
 
                                 <label class="custom-control-label" for="create_user">
@@ -64,9 +73,9 @@
                 @stack('create_user_input_end')
 
                 <div v-if="can_login" class="row col-md-12">
-                    {{Form::passwordGroup('password', trans('auth.password.current'), 'key', [], 'col-md-6 password')}}
+                    {{Form::passwordGroup('password', trans('auth.password.current'), 'key', ['required' => 'required'], 'col-md-6 password')}}
 
-                    {{Form::passwordGroup('password_confirmation', trans('auth.password.current_confirm'), 'key', [], 'col-md-6 password')}}
+                    {{Form::passwordGroup('password_confirmation', trans('auth.password.current_confirm'), 'key', ['required' => 'required'], 'col-md-6 password')}}
                 </div>
             </div>
         </div>
@@ -86,5 +95,12 @@
 @endsection
 
 @push('scripts_start')
+    <script>
+        var can_login_errors = {
+            valid: '{!! trans('validation.required', ['attribute' => 'email']) !!}',
+            email: '{{ trans('customers.error.email') }}'
+        };
+    </script>
+
     <script src="{{ asset('public/js/sales/customers.js?v=' . version('short')) }}"></script>
 @endpush

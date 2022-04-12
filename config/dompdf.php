@@ -78,7 +78,7 @@ return [
         /**
          * Whether to enable font subsetting or not.
          */
-        "enable_font_subsetting" => false,
+        "enable_font_subsetting" => true,
 
         /**
          * The PDF rendering backend to use
@@ -239,7 +239,7 @@ return [
         /**
          * Use the more-than-experimental HTML5 Lib parser
          */
-        "enable_html5_parser" => true,
+        "enable_html5_parser" => false,
     ],
 
 ];

@@ -41,6 +41,16 @@ class Users extends Controller
     }
 
     /**
+     * Show the form for viewing the specified resource.
+     *
+     * @return Response
+     */
+    public function show()
+    {
+        return redirect()->route('users.index');
+    }
+
+    /**
      * Show the form for creating a new resource.
      *
      * @return Response
@@ -111,7 +121,7 @@ class Users extends Controller
 
         $landing_pages = $u->landing_pages;
 
-        if ($user->can('read-client-portal')) {
+        if ($user->isCustomer()) {
             // Show only roles with customer permission
             $roles = Role::all()->reject(function ($r) {
                 return !$r->hasPermission('read-client-portal');

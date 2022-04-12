@@ -3,35 +3,30 @@
 namespace App\Jobs\Document;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
+use App\Models\Document\Document;
 use App\Models\Document\DocumentItem;
 use App\Models\Document\DocumentItemTax;
 use App\Models\Setting\Tax;
 use Illuminate\Support\Str;
 
-class CreateDocumentItem extends Job
+class CreateDocumentItem extends Job implements HasOwner, HasSource, ShouldCreate
 {
     protected $document;
 
     protected $request;
 
-    /**
-     * Create a new job instance.
-     *
-     * @param  $document
-     * @param  $request
-     */
-    public function __construct($document, $request)
+    public function __construct(Document $document, $request)
     {
         $this->document = $document;
         $this->request = $request;
+
+        parent::__construct($document, $request);
     }
 
-    /**
-     * Execute the job.
-     *
-     * @return DocumentItem
-     */
-    public function handle()
+    public function handle(): DocumentItem
     {
         $item_id = !empty($this->request['item_id']) ? $this->request['item_id'] : 0;
         $precision = config('money.' . $this->document->currency_code . '.precision');
@@ -43,16 +38,13 @@ class CreateDocumentItem extends Job
 
         // Apply line discount to amount
         if (!empty($this->request['discount'])) {
-            $discount += $this->request['discount'];
+            $discount = $this->request['discount'];
 
-            $item_discounted_amount = $item_amount -= ($item_amount * ($this->request['discount'] / 100));
-        }
-
-        // Apply global discount to amount
-        if (!empty($this->request['global_discount'])) {
-            $discount += $this->request['global_discount'];
-
-            $item_discounted_amount = $item_amount - ($item_amount * ($this->request['global_discount'] / 100));
+            if ($this->request['discount_type'] === 'percentage') {
+                $item_discounted_amount = $item_amount -= ($item_amount * ($this->request['discount'] / 100));
+            } else {
+                $item_discounted_amount = $item_amount -= $this->request['discount'];
+            }
         }
 
         $tax_amount = 0;
@@ -77,6 +69,9 @@ class CreateDocumentItem extends Job
                     case 'fixed':
                         $tax_amount = $tax->rate * (double) $this->request['quantity'];
 
+                        // @todo tax calculate check here
+                        //$tax_amount = round(abs($tax_amount), $precision);
+
                         $item_taxes[] = [
                             'company_id' => $this->document->company_id,
                             'type' => $this->document->type,
@@ -92,6 +87,9 @@ class CreateDocumentItem extends Job
                     case 'withholding':
                         $tax_amount = 0 - $item_discounted_amount * ($tax->rate / 100);
 
+                        // @todo tax calculate check here
+                        //$tax_amount = round(abs($tax_amount), $precision);
+
                         $item_taxes[] = [
                             'company_id' => $this->document->company_id,
                             'type' => $this->document->type,
@@ -106,6 +104,9 @@ class CreateDocumentItem extends Job
                         break;
                     default:
                         $tax_amount = $item_discounted_amount * ($tax->rate / 100);
+
+                        // @todo tax calculate check here
+                        //$tax_amount = round(abs($tax_amount), $precision);
 
                         $item_taxes[] = [
                             'company_id' => $this->document->company_id,
@@ -130,6 +131,8 @@ class CreateDocumentItem extends Job
                 foreach ($inclusives as $inclusive) {
                     $tax_amount = $item_base_rate * ($inclusive->rate / 100);
 
+                    $tax_amount = round(abs($tax_amount), $precision);
+
                     $item_taxes[] = [
                         'company_id' => $this->document->company_id,
                         'type' => $this->document->type,
@@ -142,12 +145,18 @@ class CreateDocumentItem extends Job
                     $item_tax_total += $tax_amount;
                 }
 
-                $item_amount = ($item_amount - $item_tax_total) / (1 - $discount / 100);
+                if (!empty($this->request['discount_type']) && $this->request['discount_type'] === 'fixed') {
+                    $item_amount = ($item_amount - $item_tax_total) - $discount;
+                } else {
+                    $item_amount = ($item_amount - $item_tax_total) / (1 - $discount / 100);
+                }
             }
 
             if ($compounds) {
                 foreach ($compounds as $compound) {
                     $tax_amount = (($item_discounted_amount + $item_tax_total) / 100) * $compound->rate;
+
+                    $tax_amount = round(abs($tax_amount), $precision);
 
                     $item_taxes[] = [
                         'company_id' => $this->document->company_id,
@@ -163,19 +172,22 @@ class CreateDocumentItem extends Job
             }
         }
 
-        $document_item = DocumentItem::create([
-            'company_id' => $this->document->company_id,
-            'type' => $this->document->type,
-            'document_id' => $this->document->id,
-            'item_id' => $item_id,
-            'name' => Str::limit($this->request['name'], 180, ''),
-            'description' => !empty($this->request['description']) ? $this->request['description'] : '',
-            'quantity' => (double) $this->request['quantity'],
-            'price' => round($this->request['price'], $precision),
-            'tax' => round($item_tax_total, $precision),
-            'discount_rate' => !empty($this->request['discount']) ? $this->request['discount'] : 0,
-            'total' => round($item_amount, $precision),
-        ]);
+        $this->request['company_id'] = $this->document->company_id;
+        $this->request['type'] = $this->document->type;
+        $this->request['document_id'] = $this->document->id;
+        $this->request['item_id'] = $item_id;
+        $this->request['name'] = Str::limit($this->request['name'], 180, '');
+        $this->request['description'] = !empty($this->request['description']) ? $this->request['description'] : '';
+        $this->request['quantity'] = (double) $this->request['quantity'];
+        $this->request['price'] = round($this->request['price'], $precision);
+        $this->request['tax'] = round($item_tax_total, $precision);
+        $this->request['discount_type'] = !empty($this->request['discount_type']) ? $this->request['discount_type'] : 'percentage';
+        $this->request['discount_rate'] = !empty($this->request['discount']) ? $this->request['discount'] : 0;
+        $this->request['total'] = round($item_amount, $precision);
+        $this->request['created_from'] = $this->request['created_from'];
+        $this->request['created_by'] = $this->request['created_by'];
+
+        $document_item = DocumentItem::create($this->request);
 
         $document_item->item_taxes = false;
         $document_item->inclusives = false;
@@ -189,6 +201,8 @@ class CreateDocumentItem extends Job
             foreach ($item_taxes as $item_tax) {
                 $item_tax['document_item_id'] = $document_item->id;
                 $item_tax['amount'] = round(abs($item_tax['amount']), $precision);
+                $item_tax['created_from'] = $this->request['created_from'];
+                $item_tax['created_by'] = $this->request['created_by'];
 
                 DocumentItemTax::create($item_tax);
             }

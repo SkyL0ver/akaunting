@@ -51,6 +51,9 @@ return [
     'templates'             => 'Mall|mallar',
     'sales'                 => 'Sälj|Försäljning',
     'purchases'             => 'Inköpning|Inköp',
+    'notifications'         => 'Notifiering|Notifikationer',
+    'countries'             => 'Land|Länder',
+    'cities'                => 'Stad / Stadskärna / Städer',
 
     'welcome'               => 'Välkommen',
     'banking'               => 'Banktjänster',
@@ -72,6 +75,7 @@ return [
     'add_new'               => 'Lägg till ny',
     'add_income'            => 'Lägg till inkomst',
     'add_expense'           => 'Lägg till utlägg',
+    'add_transfer'          => 'Lägg till överföring',
     'show'                  => 'Visa',
     'edit'                  => 'Redigera',
     'delete'                => 'Ta bort',
@@ -160,6 +164,10 @@ return [
     'recurring_and_more'    => 'Återkommande och mer..',
     'due_on'                => 'Förfaller den',
     'amount_due'            => 'Belopp att betala',
+    'financial_year'        => 'Räkenskapsår',
+    'created'               => 'Skapad',
+    'state'                 => 'Provins / delstat',
+    'zip_code'              => 'Postnummer / Postnummer',
 
     'card' => [
         'cards'                 => 'Kort| Kort',

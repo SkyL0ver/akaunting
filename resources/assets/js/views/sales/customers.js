@@ -19,7 +19,7 @@ import BulkAction from './../../plugins/bulk-action';
 Vue.use(DashboardPlugin);
 
 const app = new Vue({
-    el: '#app',
+    el: '#main-body',
 
     mixins: [
         Global
@@ -59,7 +59,19 @@ const app = new Vue({
 
                             this.can_login = true;
                             this.form.create_user = true;
+
                             return true;
+                        }
+
+                        if (response.data.error) {
+                            this.$notify({
+                                message: response.data.message,
+                                timeout: 0,
+                                icon: 'fas fa-bell',
+                                type: 'warning',
+                            });
+
+                            return false;
                         }
 
                         if (response.data.success) {
@@ -69,6 +81,7 @@ const app = new Vue({
 
                             this.can_login = false;
                             this.form.create_user = false;
+
                             return false;
                         }
                     })
@@ -81,6 +94,7 @@ const app = new Vue({
 
                     this.can_login = false;
                     this.form.create_user = false;
+
                     return false;
                 }
 
@@ -90,6 +104,7 @@ const app = new Vue({
 
                 this.can_login = false;
                 this.form.create_user = false;
+
                 return false;
             }
         }

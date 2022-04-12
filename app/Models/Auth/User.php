@@ -5,7 +5,11 @@ namespace App\Models\Auth;
 use App\Traits\Tenants;
 use App\Notifications\Auth\Reset;
 use App\Traits\Media;
-use Date;
+use App\Traits\Owners;
+use App\Traits\Sources;
+use App\Traits\Users;
+use App\Utilities\Date;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -14,20 +18,18 @@ use Kyslik\ColumnSortable\Sortable;
 use Laratrust\Traits\LaratrustUserTrait;
 use Lorisleiva\LaravelSearchString\Concerns\SearchString;
 
-class User extends Authenticatable
+class User extends Authenticatable implements HasLocalePreference
 {
-    use HasFactory, LaratrustUserTrait, Notifiable, SearchString, SoftDeletes, Sortable, Media, Tenants;
+    use HasFactory, LaratrustUserTrait, Media, Notifiable, Owners, SearchString, SoftDeletes, Sortable, Sources, Tenants, Users;
 
     protected $table = 'users';
-
-    protected $tenantable = false;
 
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
-    protected $fillable = ['name', 'email', 'password', 'locale', 'enabled', 'landing_page'];
+    protected $fillable = ['name', 'email', 'password', 'locale', 'enabled', 'landing_page', 'created_from', 'created_by'];
 
     /**
      * The attributes that should be cast.
@@ -74,7 +76,7 @@ class User extends Authenticatable
 
     public function companies()
     {
-        return $this->morphToMany('App\Models\Common\Company', 'user', 'user_companies', 'user_id', 'company_id');
+        return $this->belongsToMany('App\Models\Common\Company', 'App\Models\Auth\UserCompany');
     }
 
     public function contact()
@@ -84,7 +86,7 @@ class User extends Authenticatable
 
     public function dashboards()
     {
-        return $this->morphToMany('App\Models\Common\Dashboard', 'user', 'user_dashboards', 'user_id', 'dashboard_id');
+        return $this->belongsToMany('App\Models\Common\Dashboard', 'App\Models\Auth\UserDashboard');
     }
 
     /**
@@ -176,13 +178,13 @@ class User extends Authenticatable
         $request = request();
 
         $search = $request->get('search');
-        $limit = $request->get('limit', setting('default.list_limit', '25'));
+        $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
 
         return $query->usingSearchString($search)->sortable($sort)->paginate($limit);
     }
 
     /**
-     * Scope to only include active currencies.
+     * Scope to only include active users.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
@@ -193,18 +195,103 @@ class User extends Authenticatable
     }
 
     /**
-     * Convert tax to Array.
+     * Scope to only customers.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeIsCustomer($query)
+    {
+        return $query->wherePermissionIs('read-client-portal');
+    }
+
+    /**
+     * Scope to only users.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeIsNotCustomer($query)
+    {
+        return $query->wherePermissionIs('read-admin-panel');
+    }
+
+    /**
+     * Attach company_ids attribute to model.
      *
      * @return void
      */
     public function setCompanyIds()
     {
-        $this->setAttribute('company_ids', $this->companies->pluck('id')->toArray());
+        $company_ids = $this->withoutEvents(function () {
+            return $this->companies->pluck('id')->toArray();
+        });
+
+        $this->setAttribute('company_ids', $company_ids);
     }
 
+    /**
+     * Detach company_ids attribute from model.
+     *
+     * @return void
+     */
     public function unsetCompanyIds()
     {
         $this->offsetUnset('company_ids');
+    }
+
+    /**
+     * Determine if user is a customer.
+     *
+     * @return bool
+     */
+    public function isCustomer()
+    {
+        return (bool) $this->can('read-client-portal');
+    }
+
+    /**
+     * Determine if user is not a customer.
+     *
+     * @return bool
+     */
+    public function isNotCustomer()
+    {
+        return (bool) $this->can('read-admin-panel');
+    }
+
+    public function scopeSource($query, $source)
+    {
+        return $query->where($this->qualifyColumn('created_from'), $source);
+    }
+
+    public function scopeIsOwner($query)
+    {
+        return $query->where($this->qualifyColumn('created_by'), user_id());
+    }
+
+    public function scopeIsNotOwner($query)
+    {
+        return $query->where($this->qualifyColumn('created_by'), '<>', user_id());
+    }
+
+    public function ownerKey($owner)
+    {
+        if ($this->isNotOwnable()) {
+            return 0;
+        }
+
+        return $this->created_by;
+    }
+
+    /**
+     * Get the user's preferred locale.
+     *
+     * @return string
+     */
+    public function preferredLocale()
+    {
+        return $this->locale;
     }
 
     /**

@@ -13,7 +13,13 @@
 
         icon="{{ $icon }}"
         title="{{ $text }}"
+
+        @if (isset($attributes['placeholder']))
+        placeholder="{{ $attributes['placeholder'] }}"
+        @else
         placeholder="{{ trans('general.form.select.field', ['field' => $text]) }}"
+        @endif
+
         name="{{ $name }}"
         :options="{{ json_encode($values) }}"
 
@@ -48,9 +54,15 @@
         @if (!empty($attributes['visible-change']))
         @visible-change="{{ $attributes['visible-change'] }}"
         @endif
-        
+
         @if (isset($attributes['readonly']))
         :readonly="{{ $attributes['readonly'] }}"
+        @endif
+
+        @if (isset($attributes['clearable']))
+        :clearable="{{ $attributes['clearable'] }}"
+        @else
+        clearable
         @endif
 
         @if (isset($attributes['disabled']))

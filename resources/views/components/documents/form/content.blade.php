@@ -40,8 +40,8 @@
             contact-type="{{ $contactType }}"
             :contact="$contact"
             :contacts="$contacts"
-            :search_route="$contactSearchRoute"
-            :create_route="$contactCreateRoute"
+            :search-route="$contactSearchRoute"
+            :create-route="$contactCreateRoute"
             hide-issued-at="{{ $hideIssuedAt }}"
             text-issued-at="{{ $textIssuedAt }}"
             issued-at="{{ $issuedAt }}"
@@ -68,6 +68,7 @@
             text-amount="{{ $textAmount }}"
             is-sale-price="{{ $isSalePrice }}"
             is-purchase-price="{{ $isPurchasePrice }}"
+            search-char-limit="{{ $searchCharLimit }}"
             notes-setting="{{ $notesSetting }}"
         />
 

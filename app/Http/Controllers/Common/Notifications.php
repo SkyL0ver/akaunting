@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Common;
 
-use Date;
 use App\Abstracts\Http\Controller;
-use App\Traits\Modules as RemoteModules;
 use App\Http\Requests\Common\Notification as Request;
+use App\Traits\Modules;
+use App\Utilities\Date;
+use Illuminate\Support\Str;
 
 class Notifications extends Controller
 {
-    use RemoteModules;
+    use Modules;
 
     /**
      * Display a listing of the resource.
@@ -18,9 +19,7 @@ class Notifications extends Controller
      */
     public function index()
     {
-        $notifications = setting('notifications');
-
-        return view('common.notifications.index', compact('notifications'));
+        return view('common.notifications.index');
     }
 
     /**
@@ -28,11 +27,35 @@ class Notifications extends Controller
      *
      * @return Response
      */
-    public function show($path, $id)
+    public function readAll()
     {
-        $notification = setting('notifications.' . $path . '.' . $id);
+        $notifications = user()->unreadNotifications;
 
-        return view('common.notifications.show', compact('notification'));
+        foreach ($notifications as $notification) {
+            $notification->markAsRead();
+        }
+
+        // Hide New Apps Notifications
+        $module_notifications = $this->getNotifications('new-apps');
+
+        foreach ($module_notifications as $module_notification) {
+            $prefix = 'notifications.' . user()->id . '.' . $module_notification->alias;
+
+            setting()->set([
+                $prefix . '.name'       => $module_notification->name,
+                $prefix . '.message'    => $module_notification->alias,
+                $prefix . '.date'       => Date::now(),
+                $prefix . '.status'     => '0',
+            ]);
+        }
+
+        setting()->save();
+
+        $message = trans('messages.success.clear_all', ['type' => Str::lower(trans_choice('general.notifications', 2))]);
+
+        flash($message)->success();
+
+        return redirect()->route('dashboard');
     }
 
     /**
@@ -51,17 +74,25 @@ class Notifications extends Controller
 
         foreach ($notifications as $notification) {
             if ($notification->id == $id) {
-                setting()->set('notifications.'. $path . '.' . $id . '.name', $notification->name);
-                setting()->set('notifications.'. $path . '.' . $id . '.message', $notification->message);
-                setting()->set('notifications.'. $path . '.' . $id . '.date', Date::now());
-                setting()->set('notifications.'. $path . '.' . $id . '.status', '0');
+                $prefix = 'notifications.' . $path . '.' . $id;
+
+                setting()->set([
+                    $prefix . '.name'       => $notification->name,
+                    $prefix . '.message'    => $notification->message,
+                    $prefix . '.date'       => Date::now(),
+                    $prefix . '.status'     => '0',
+                ]);
 
                 setting()->save();
+
                 break;
             }
         }
 
         return response()->json([
+            'message' => trans('messages.success.disabled', [
+                'type' => Str::lower(trans_choice('general.notifications', 2))
+            ]),
             'success' => true,
             'error' => false,
             'data' => null,

@@ -3,44 +3,23 @@
 namespace App\Jobs\Banking;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
 use App\Models\Banking\Reconciliation;
 use App\Models\Banking\Transaction;
 
-class CreateReconciliation extends Job
+class CreateReconciliation extends Job implements HasOwner, HasSource, ShouldCreate
 {
-    protected $reconciliation;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($request)
-    {
-        $this->request = $this->getRequestInstance($request);
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return Reconciliation
-     */
-    public function handle()
+    public function handle(): Reconciliation
     {
         \DB::transaction(function () {
-            $reconcile = $this->request->get('reconcile');
+            $reconcile = (int) $this->request->get('reconcile');
             $transactions = $this->request->get('transactions');
 
-            $this->reconciliation = Reconciliation::create([
-                'company_id' => $this->request['company_id'],
-                'account_id' => $this->request->get('account_id'),
-                'started_at' => $this->request->get('started_at'),
-                'ended_at' => $this->request->get('ended_at'),
-                'closing_balance' => $this->request->get('closing_balance'),
-                'reconciled' => $reconcile ? 1 : 0,
-            ]);
+            $this->request->merge(['reconciled' => $reconcile]);
+
+            $this->model = Reconciliation::create($this->request->all());
 
             if ($reconcile && $transactions) {
                 foreach ($transactions as $key => $value) {
@@ -57,6 +36,6 @@ class CreateReconciliation extends Job
             }
         });
 
-        return $this->reconciliation;
+        return $this->model;
     }
 }

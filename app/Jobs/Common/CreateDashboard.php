@@ -3,34 +3,20 @@
 namespace App\Jobs\Common;
 
 use App\Abstracts\Job;
+use App\Interfaces\Job\HasOwner;
+use App\Interfaces\Job\HasSource;
+use App\Interfaces\Job\ShouldCreate;
+use App\Jobs\Common\CreateWidget;
 use App\Models\Auth\User;
+use App\Models\Common\Company;
 use App\Models\Common\Dashboard;
 use App\Models\Common\Widget;
 use App\Utilities\Widgets;
 use Illuminate\Support\Arr;
 
-class CreateDashboard extends Job
+class CreateDashboard extends Job implements HasOwner, HasSource, ShouldCreate
 {
-    protected $dashboard;
-
-    protected $request;
-
-    /**
-     * Create a new job instance.
-     *
-     * @param  $request
-     */
-    public function __construct($request)
-    {
-        $this->request = $this->getRequestInstance($request);
-    }
-
-    /**
-     * Execute the job.
-     *
-     * @return Item
-     */
-    public function handle()
+    public function handle(): Dashboard
     {
         $this->request['enabled'] = $this->request['enabled'] ?? 1;
 
@@ -41,21 +27,31 @@ class CreateDashboard extends Job
                 return;
             }
 
-            $this->dashboard = Dashboard::create($this->request->only(['company_id', 'name', 'enabled']));
+            $this->model = Dashboard::create($this->request->only([
+                'company_id', 'name', 'enabled', 'created_from', 'created_by'
+            ]));
 
-            $this->dashboard->users()->attach($users);
+            $this->model->users()->attach($users);
 
             $this->checkAndCreateWidgets();
         });
 
-        return $this->dashboard;
+        return $this->model;
     }
 
-    protected function getUsers()
+    protected function getUsers(): array
     {
         $list = [];
 
-        if ($this->request->has('users')) {
+        if ($this->request->has('all_users')) {
+            Company::find($this->request->get('company_id'))->users()->each(function ($user) use (&$list) {
+                if (!$this->shouldCreateDashboardFor($user)) {
+                    return;
+                }
+
+                $list[] = $user->id;
+            });
+        } elseif ($this->request->has('users')) {
             $user_ids = Arr::wrap($this->request->get('users'));
 
             foreach($user_ids as $user_id) {
@@ -78,7 +74,7 @@ class CreateDashboard extends Job
         return $list;
     }
 
-    protected function shouldCreateDashboardFor($user)
+    protected function shouldCreateDashboardFor($user): bool
     {
         if (empty($user)) {
             return false;
@@ -92,12 +88,12 @@ class CreateDashboard extends Job
         return true;
     }
 
-    protected function checkAndCreateWidgets()
+    protected function checkAndCreateWidgets(): void
     {
         $sort = 1;
 
         if ($this->request->has('default_widgets')) {
-            $widgets = Widgets::getClasses(false);
+            $widgets = Widgets::getClasses($this->request->get('default_widgets'), false);
 
             $this->createWidgets($widgets, $sort);
         }
@@ -109,7 +105,7 @@ class CreateDashboard extends Job
         }
     }
 
-    protected function createWidgets($widgets, &$sort)
+    protected function createWidgets($widgets, &$sort): void
     {
         foreach ($widgets as $class => $name) {
             // It's just an array of classes
@@ -118,14 +114,21 @@ class CreateDashboard extends Job
                 $name = (new $class())->getDefaultName();
             }
 
-            Widget::create([
-                'company_id' => $this->dashboard->company_id,
-                'dashboard_id' => $this->dashboard->id,
-                'class' => $class,
-                'name' => $name,
-                'sort' => $sort,
-                'settings' => (new $class())->getDefaultSettings(),
-            ]);
+            $widget = Widget::companyId($this->model->company_id)
+                        ->where('dashboard_id', $this->model->id)
+                        ->where('class', $class)
+                        ->first();
+
+            if (! $widget) {
+                $this->dispatch(new CreateWidget([
+                    'company_id' => $this->model->company_id,
+                    'dashboard_id' => $this->model->id,
+                    'class' => $class,
+                    'name' => $name,
+                    'sort' => $sort,
+                    'settings' => (new $class())->getDefaultSettings(),
+                ]));
+            }
 
             $sort++;
         }

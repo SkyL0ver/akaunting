@@ -27,6 +27,39 @@ class AddSearchString extends Listener
             return;
         }
 
+        $old = old();
+        $request = request()->all();
+
+        if ($old || $request) {
+            $input = request('search');
+
+            $filters = [];
+
+            if ($input) {
+                $filters = explode(' ', $input);
+            }
+
+            foreach ($old as $key => $value) {
+                $filter = $key . ':' . $value;
+
+                if (!in_array($filter, $filters)) {
+                    $filters[] = $filter;
+                }
+            }
+
+            foreach ($request as $key => $value) {
+                if ($key == 'search') {
+                    continue;
+                }
+
+                $filters[] = $key . ':' . $value;
+            }
+
+            request()->merge([
+                'search' => implode(' ', $filters)
+            ]);
+        }
+
         // Apply search string
         $this->applySearchStringFilter($event);
     }

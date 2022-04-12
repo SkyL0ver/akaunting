@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Image;
 use Intervention\Image\Exception\NotReadableException;
 use Storage;
+use Illuminate\Support\Str;
 
 abstract class DocumentTemplate extends Base
 {
@@ -68,6 +69,12 @@ abstract class DocumentTemplate extends Base
 
     public $hideDueAt;
 
+    /** @var string */
+    public $textDocumentTitle;
+
+    /** @var string */
+    public $textDocumentSubheading;
+
     public $textContactInfo;
 
     /** @var string */
@@ -116,11 +123,12 @@ abstract class DocumentTemplate extends Base
      * @return void
      */
     public function __construct(
-        $type, $item = false, $document, $documentTemplate = '', $logo = '', $backgroundColor = '',
+        $type, $document, $item = false,  $documentTemplate = '', $logo = '', $backgroundColor = '',
         bool $hideFooter = false, bool $hideCompanyLogo = false, bool $hideCompanyDetails = false,
         bool $hideCompanyName = false, bool $hideCompanyAddress = false, bool $hideCompanyTaxNumber = false, bool $hideCompanyPhone = false, bool $hideCompanyEmail = false, bool $hideContactInfo = false,
         bool $hideContactName = false, bool $hideContactAddress = false, bool $hideContactTaxNumber = false, bool $hideContactPhone = false, bool $hideContactEmail = false,
         bool $hideOrderNumber = false, bool $hideDocumentNumber = false, bool $hideIssuedAt = false, bool $hideDueAt = false,
+        string $textDocumentTitle = '', string $textDocumentSubheading = '',
         string $textContactInfo = '', string $textDocumentNumber = '', string $textOrderNumber = '', string $textIssuedAt = '', string $textDueAt = '',
         bool $hideItems = false, bool $hideName = false, bool $hideDescription = false, bool $hideQuantity = false, bool $hidePrice = false, bool $hideDiscount = false, bool $hideAmount = false, bool $hideNote = false,
         string $textItems = '', string $textQuantity = '', string $textPrice = '', string $textAmount = ''
@@ -151,6 +159,8 @@ abstract class DocumentTemplate extends Base
         $this->hideIssuedAt = $hideIssuedAt;
         $this->hideDueAt = $hideDueAt;
 
+        $this->textDocumentTitle = $this->getTextDocumentTitle($type, $textDocumentTitle);
+        $this->textDocumentSubheading = $this->gettextDocumentSubheading($type, $textDocumentSubheading);
         $this->textContactInfo = $this->getTextContactInfo($type, $textContactInfo);
         $this->textIssuedAt = $this->getTextIssuedAt($type, $textIssuedAt);
         $this->textDocumentNumber = $this->getTextDocumentNumber($type, $textDocumentNumber);
@@ -193,12 +203,14 @@ abstract class DocumentTemplate extends Base
             return $logo;
         }
 
-        $media = Media::find(setting('company.logo'));
+        $media_id = (!empty($this->document->contact->logo) && !empty($this->document->contact->logo->id)) ? $this->document->contact->logo->id : setting('company.logo');
+
+        $media = Media::find($media_id);
 
         if (!empty($media)) {
-            $path = Storage::path($media->getDiskPath());
+            $path = $media->getDiskPath();
 
-            if (!is_file($path)) {
+            if (Storage::missing($path)) {
                 return $logo;
             }
         } else {
@@ -206,14 +218,18 @@ abstract class DocumentTemplate extends Base
         }
 
         try {
-            $image = Image::cache(function($image) use ($path) {
+            $image = Image::cache(function($image) use ($media, $path) {
                 $width = setting('invoice.logo_size_width');
                 $height = setting('invoice.logo_size_height');
 
-                $image->make($path)->resize($width, $height)->encode();
+                if ($media) {
+                    $image->make(Storage::get($path))->resize($width, $height)->encode();
+                } else {
+                    $image->make($path)->resize($width, $height)->encode();
+                }
             });
         } catch (NotReadableException | \Exception $e) {
-            Log::info('Company ID: ' . session('company_id') . ' components/documentshow.php exception.');
+            Log::info('Company ID: ' . company_id() . ' components/documentshow.php exception.');
             Log::info($e->getMessage());
 
             $path = base_path('public/img/company.png');
@@ -245,14 +261,51 @@ abstract class DocumentTemplate extends Base
             return $background_color;
         }
 
-
-        if (!empty($alias = config('type.' . $type . '.alias'))) {
-            $type = $alias . '.' . str_replace('-', '_', $type);
-        }
-
         $backgroundColor = setting($this->getSettingKey($type, 'color'), '#55588b');
 
         return $backgroundColor;
+    }
+
+    protected function getTextDocumentTitle($type, $textDocumentTitle)
+    {
+        if (!empty($textDocumentTitle)) {
+            return $textDocumentTitle;
+        }
+
+        $key = $this->getSettingKey($type, 'title');
+
+        if (!empty(setting($key))) {
+            return setting($key);
+        }
+
+        $translation = $this->getTextFromConfig($type, 'document_title', Str::plural($type));
+
+        if (!empty($translation)) {
+            return trans_choice($translation, 1);
+        }
+
+        return setting('invoice.title');
+    }
+
+    protected function getTextDocumentSubheading($type, $textDocumentSubheading)
+    {
+        if (!empty($textDocumentSubheading)) {
+            return $textDocumentSubheading;
+        }
+
+        $key = $this->getSettingKey($type, 'subheading');
+
+        if (!empty(setting($key))) {
+            return setting($key);
+        }
+
+        $translation = $this->getTextFromConfig($type, 'document_subheading', 'subheading');
+
+        if (!empty($translation)) {
+            return trans($translation);
+        }
+
+        return false;
     }
 
     protected function getTextDocumentNumber($type, $textDocumentNumber)
@@ -370,12 +423,18 @@ abstract class DocumentTemplate extends Base
         }
 
         // if you use settting translation
-        if (setting($this->getSettingKey($type, 'item_name'), 'items') == 'custom') {
+        if (setting($this->getSettingKey($type, 'item_name'), 'items') === 'custom') {
             if (empty($textItems = setting($this->getSettingKey($type, 'item_name_input')))) {
                 $textItems = 'general.items';
             }
 
             return $textItems;
+        }
+
+        if (setting($this->getSettingKey($type, 'item_name')) !== null &&
+            (trans(setting($this->getSettingKey($type, 'item_name'))) != setting($this->getSettingKey($type, 'item_name')))
+        ) {
+            return setting($this->getSettingKey($type, 'item_name'));
         }
 
         $translation = $this->getTextFromConfig($type, 'items');
@@ -402,6 +461,12 @@ abstract class DocumentTemplate extends Base
             return $textQuantity;
         }
 
+        if (setting($this->getSettingKey($type, 'quantity_name')) !== null &&
+            (trans(setting($this->getSettingKey($type, 'quantity_name'))) != setting($this->getSettingKey($type, 'quantity_name')))
+        ) {
+            return setting($this->getSettingKey($type, 'quantity_name'));
+        }
+
         $translation = $this->getTextFromConfig($type, 'quantity');
 
         if (!empty($translation)) {
@@ -424,6 +489,12 @@ abstract class DocumentTemplate extends Base
             }
 
             return $textPrice;
+        }
+
+        if (setting($this->getSettingKey($type, 'price_name')) !== null &&
+            (trans(setting($this->getSettingKey($type, 'price_name'))) != setting($this->getSettingKey($type, 'price_name')))
+        ) {
+            return setting($this->getSettingKey($type, 'price_name'));
         }
 
         $translation = $this->getTextFromConfig($type, 'price');

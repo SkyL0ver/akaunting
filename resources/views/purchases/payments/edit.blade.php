@@ -27,7 +27,7 @@
             'files' => true,
             'route' => ['payments.update', $payment->id],
             'role' => 'form',
-            'id' => 'payment',
+            'id' => 'transaction',
             '@submit.prevent' => 'onSubmit',
             '@keydown' => 'form.errors.clear($event.target.name)',
             'class' => 'form-loading-button',
@@ -49,7 +49,7 @@
 
                     {{ Form::textareaGroup('description', trans('general.description')) }}
 
-                    {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, $payment->category_id, ['required' => 'required', 'path' => route('modals.categories.create') . '?type=expense', 'remote_action' => route('categories.index'). '?search=type:expense']) }}
+                    {{ Form::selectRemoteAddNewGroup('category_id', trans_choice('general.categories', 1), 'folder', $categories, $payment->category_id, ['required' => 'required', 'path' => route('modals.categories.create') . '?type=expense', 'remote_action' => route('categories.index'). '?search=type:expense enabled:1']) }}
 
                     {{ Form::recurring('edit', $payment) }}
 
@@ -80,5 +80,5 @@
 @endsection
 
 @push('scripts_start')
-    <script src="{{ asset('public/js/purchases/payments.js?v=' . version('short')) }}"></script>
+    <script src="{{ asset('public/js/banking/transactions.js?v=' . version('short')) }}"></script>
 @endpush

@@ -47,19 +47,6 @@ class Bills extends Controller
      */
     public function show(Document $bill)
     {
-        // Get Bill Totals
-        foreach ($bill->totals_sorted as $bill_total) {
-            $bill->{$bill_total->code} = $bill_total->amount;
-        }
-
-        $total = money($bill->total, $bill->currency_code, true)->format();
-
-        $bill->grand_total = money($total, $bill->currency_code)->getAmount();
-
-        if (!empty($bill->paid)) {
-            $bill->grand_total = round($bill->total - $bill->paid, config('money.' . $bill->currency_code . '.precision'));
-        }
-
         return view('purchases.bills.show', compact('bill'));
     }
 
@@ -128,20 +115,16 @@ class Bills extends Controller
      */
     public function import(ImportRequest $request)
     {
-        $response = $this->importExcel(new Import, $request);
+        $response = $this->importExcel(new Import, $request, trans_choice('general.bills', 2));
 
         if ($response['success']) {
             $response['redirect'] = route('bills.index');
 
-            $message = trans('messages.success.imported', ['type' => trans_choice('general.bills', 1)]);
-
-            flash($message)->success();
+            flash($response['message'])->success();
         } else {
             $response['redirect'] = route('import.create', ['purchases', 'bills']);
 
-            $message = $response['message'];
-
-            flash($message)->error()->important();
+            flash($response['message'])->error()->important();
         }
 
         return response()->json($response);
