@@ -24,13 +24,17 @@ class Categories extends Controller
      */
     public function index()
     {
-        $categories = Category::collect();
+        $query = Category::with('sub_categories');
 
-        $transfer_id = Category::transfer();
+        if (request()->has('search')) {
+            $query->withSubcategory();
+        }
+
+        $categories = $query->collect();
 
         $types = $this->getCategoryTypes();
 
-        return $this->response('settings.categories.index', compact('categories', 'types', 'transfer_id'));
+        return $this->response('settings.categories.index', compact('categories', 'types'));
     }
 
     /**
@@ -52,7 +56,21 @@ class Categories extends Controller
     {
         $types = $this->getCategoryTypes();
 
-        return view('settings.categories.create', compact('types'));
+        $categories = [];
+
+        foreach (config('type.category') as $type => $config) {
+            $categories[$type] = [];
+        }
+
+        Category::enabled()->orderBy('name')->get()->each(function ($category) use (&$categories) {
+            $categories[$category->type][] = [
+                'id' => $category->id,
+                'title' => $category->name,
+                'level' => $category->level,
+            ];
+        });
+
+        return view('settings.categories.create', compact('types', 'categories'));
     }
 
     /**
@@ -120,7 +138,42 @@ class Categories extends Controller
 
         $type_disabled = (Category::where('type', $category->type)->count() == 1) ?: false;
 
-        return view('settings.categories.edit', compact('category', 'types', 'type_disabled'));
+        $edited_category_id = $category->id;
+
+        $categories = [];
+
+        foreach (config('type.category') as $type => $config) {
+            $categories[$type] = [];
+        }
+
+        $skip_categories = [];
+        $skip_categories[] = $edited_category_id;
+
+        foreach ($category->sub_categories as $sub_category) {
+            $skip_categories[] = $sub_category->id;
+
+            if ($sub_category->sub_categories) {
+                $skips = $this->getChildrenCategoryIds($sub_category);
+
+                foreach ($skips as $skip) {
+                    $skip_categories[] = $skip;
+                }
+            }
+        }
+
+        Category::enabled()->orderBy('name')->get()->each(function ($category) use (&$categories, &$skip_categories) {
+            if (in_array($category->id, $skip_categories)) {
+                return;
+            }
+
+            $categories[$category->type][] = [
+                'id' => $category->id,
+                'title' => $category->name,
+                'level' => $category->level,
+            ];
+        });
+
+        return view('settings.categories.edit', compact('category', 'types', 'type_disabled', 'categories'));
     }
 
     /**

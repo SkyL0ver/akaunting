@@ -1,46 +1,57 @@
 <template>
-    <div :id="'search-field-' + _uid" class="searh-field tags-input__wrapper js-search">
-        <div class="tags-group" v-for="(filter, index) in filtered" :index="index">
-            <span v-if="filter.option" class="el-tag el-tag--primary el-tag--small el-tag--light el-tag-option">
-                {{ filter.option }}
+    <div
+        :id="'search-field-' + _uid"
+        class="lg:h-12 my-5 searh-field flex flex-col lg:flex-row border-b transition-all js-search"
+        :class="input_focus ? 'border-gray-500' : 'border-gray-300'"
+    >
+        <div class="w-full lg:w-auto flex overflow-x-scroll large-overflow-unset" :class="filtered.length ? 'h-12 lg:h-auto' : ''">
+            <div class="tags-group group items-center" style="display:contents;" v-for="(filter, index) in filtered" :index="index">
+                <span v-if="filter.option" class="flex items-center bg-purple-lighter text-black border-0 mt-3 px-3 py-4 text-sm cursor-pointer el-tag el-tag--small el-tag-option">
+                    {{ filter.option }}
 
-                <i v-if="!filter.operator && !filter.value" class="el-tag__close el-icon-close" @click="onFilterDelete(index)"></i>
-            </span>
+                    <i v-if="!filter.operator && !filter.value" class="mt-1 ltr:-right-2 rtl:left-0 rtl:right-0 el-tag__close el-icon-close" style="font-size: 16px;" @click="onFilterDelete(index)"></i>
+                </span>
 
-            <span v-if="filter.operator" class="el-tag el-tag--primary el-tag--small el-tag--light el-tag-operator">
-                <i v-if="filter.operator == '='" class="fas fa-equals"></i>
-                <i v-else-if="filter.operator == '><'" class="fas fa-arrows-alt-h"></i>
-                <i v-else class="fas fa-not-equal"></i>
+                <span v-if="filter.operator" class="flex items-center bg-purple-lighter text-black border-2 border-body border-l border-r border-t-0 border-b-0 mt-3 px-3 py-4 text-sm cursor-pointer el-tag el-tag--small el-tag-operator" style="margin-left:0; margin-right:0;">
+                    <span v-if="filter.operator == '='" class="material-icons text-2xl">drag_handle</span>
+                    <span v-else-if="filter.operator == '><'" class="material-icons text-2xl transform rotate-90">height</span>
 
-                <i v-if="!filter.value" class="el-tag__close el-icon-close" @click="onFilterDelete(index)"></i>
-            </span>
+                    <img v-else :src="not_equal_image" class="w-5 h-5 object-cover block" />
 
-            <span v-if="filter.value" class="el-tag el-tag--primary el-tag--small el-tag--light el-tag-value">
-                {{ filter.value }}
+                    <i v-if="!filter.value" class="mt-1 ltr:-right-2 rtl:left-0 rtl:right-0 el-tag__close el-icon-close " style="font-size: 16px;" @click="onFilterDelete(index)"></i>
+                </span>
 
-                <i class="el-tag__close el-icon-close" @click="onFilterDelete(index)"></i>
-            </span>
+                <span v-if="filter.value" class="flex items-center bg-purple-lighter text-black border-0 mt-3 px-3 py-4 text-sm cursor-pointer el-tag el-tag--small  el-tag-value">
+                    {{ filter.value }}
+
+                    <i class="mt-1 ltr:-right-2 rtl:left-0 rtl:right-0 el-tag__close el-icon-close " style="font-size: 16px;" @click="onFilterDelete(index)"></i>
+                </span>
+            </div>
         </div>
 
-        <div class="dropdown input-full">
+        <div class="relative w-full h-full flex">
             <input
-                v-if="!show_date"
-                type="text"
-                class="form-control"
-                :placeholder="placeholder"
-                :ref="'input-search-field-' + _uid"
-                v-model="search"
-                @focus="onInputFocus"
-                @input="onInput"
-                @keyup.enter="onInputConfirm"
+            v-if="!show_date"
+            type="text"
+            class="w-full h-12 lg:h-auto bg-transparent text-black text-sm border-0 pb-0 focus:outline-none focus:ring-transparent focus:border-purple-100"
+            :class="!show_icon ? 'px-4' : 'px-10'"
+            :placeholder="dynamicPlaceholder"
+            :ref="'input-search-field-' + _uid"
+            v-model="search"
+            @focus="onInputFocus"
+            @input="onInput"
+            @blur="onBlur"
+            @keyup.enter="onInputConfirm"
             />
 
             <flat-picker
                 v-else
                 @on-open="onInputFocus"
+                @blur="onBlur"
                 :config="dateConfig"
-                class="form-control datepicker"
-                :placeholder="placeholder"
+                class="w-full h-12 lg:h-auto bg-transparent text-black text-sm border-0 pb-0 focus:outline-none focus:ring-transparent focus:border-purple-100 datepicker"
+                :class="!show_icon ? 'px-4' : 'px-10'"
+                :placeholder="dynamicPlaceholder"
                 :ref="'input-search-date-field-' + _uid"
                 value=""
                 @focus="onInputFocus"
@@ -48,42 +59,62 @@
                 @keyup.enter="onInputConfirm"
             >
             </flat-picker>
+                <span
+                    v-if="show_icon"
+                    class="material-icons absolute bottom-1 ltr:left-3 rtl:right-3 text-lg text-black"
+                    style="z-index:-1;"
+                >
+                    search
+                </span>
 
-            <button type="button" class="btn btn-link clear" @click="onSearchAndFilterClear">
-                <i class="el-tag__close el-icon-close"></i>
+            <button type="button" class="absolute ltr:right-0 rtl:left-0 top-4 lg:top-2 clear" v-if="show_close_icon" @click="onSearchAndFilterClear">
+                <span class="material-icons text-sm">close</span>
             </button>
 
-            <div :id="'search-field-option-' + _uid" class="dropdown-menu" :class="[{'show': visible.options}]">
-                <li ref="" class="dropdown-item" v-for="option in filteredOptions" :data-value="option.key">
-                    <button type="button" class="btn btn-link" @click="onOptionSelected(option.key)">{{ option.value }}</button>
+            <div :id="'search-field-option-' + _uid" class="absolute top-12 ltr:left-8 rtl:right-8 py-2 bg-white rounded-md border border-gray-200 shadow-xl z-20 list-none dropdown-menu" :class="[{'show': visible.options}]">
+                <li ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap" v-for="option in filteredOptions" :data-value="option.key">
+                    <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" data-btn="btn btn-link" @click="onOptionSelected(option.key)">{{ option.value }}</button>
                 </li>
 
-                <li ref="" v-if="search" class="dropdown-item">
-                    <button type="button" class="btn btn-link" @click="onInputConfirm">{{ searchText }}</button>
-                </li>
-            </div>
-
-            <div :id="'search-field-operator-' + _uid" class="dropdown-menu operator" :class="[{'show': visible.operator}]">
-                <li ref="" class="dropdown-item">
-                    <button type="button" class="btn btn-link" @click="onOperatorSelected('=')"><i class="fas fa-equals"></i><span class="btn-helptext d-none">{{ operatorIsText }}</span></button>
-                </li>
-
-                <li ref="" class="dropdown-item">
-                    <button type="button" class="btn btn-link" @click="onOperatorSelected('!=')"><i class="fas fa-not-equal"></i><span class="btn-helptext d-none">{{ operatorIsNotText }}</span></button>
-                </li>
-
-                <li v-if="range" ref="" class="dropdown-item">
-                    <button type="button" class="btn btn-link" @click="onOperatorSelected('><')"><i class="fas fa-arrows-alt-h"></i><span class="btn-helptext d-none">{{ operatorIsNotText }}</span></button>
+                <li ref="" v-if="search" class="p-2 hover:bg-lilac-900 dropdown-item">
+                    <button type="button" class="text-left" @click="onInputConfirm">{{ searchText }}</button>
                 </li>
             </div>
 
-            <div :id="'search-field-value-' + _uid" class="dropdown-menu" :class="[{'show': visible.values}]">
-                <li ref="" class="dropdown-item" v-for="(value) in filteredValues" :data-value="value.key">
-                    <button type="button" class="btn btn-link" @click="onValueSelected(value.key)">{{ value.value }}</button>
+            <div :id="'search-field-operator-' + _uid" class="absolute top-12 ltr:left-8 rtl:right-8 py-2 bg-white rounded-md border border-gray-200 shadow-xl z-20 list-none dropdown-menu operator" :class="[{'show': visible.operator}]">
+                <li v-if="equal" ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap">
+                    <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onOperatorSelected('=')">
+                        <span class="material-icons text-2xl transform pointer-events-none">drag_handle</span>
+                        <span class="text-gray hidden pointer-events-none">{{ operatorIsText }}
+                        </span>
+                    </button>
                 </li>
 
-                <li ref="" class="dropdown-item" v-if="!filteredValues.length">
-                    <button type="button" class="btn btn-link">{{ noMatchingDataText }}</button>
+                <li v-if="not_equal" ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap">
+                    <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onOperatorSelected('!=')">
+                        <img :src="not_equal_image" class="w-6 h-6 block m-auto pointer-events-none" />
+                        <span class="text-gray hidden pointer-events-none">{{ operatorIsNotText }}</span>
+                    </button>
+                </li>
+
+                <li v-if="range" ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap">
+                    <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onOperatorSelected('><')">
+                        <span class="material-icons text-2xl transform rotate-90 pointer-events-none">height</span>
+                        <span class="text-gray hidden pointer-events-none">{{ operatorIsNotText }}</span>
+                    </button>
+                </li>
+            </div>
+
+            <div :id="'search-field-value-' + _uid" class="absolute top-12 ltr:left-8 rtl:right-8 py-2 bg-white rounded-md border border-gray-200 shadow-xl z-20 list-none dropdown-menu" :class="[{'show': visible.values}]">
+                <li ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap" v-for="(value) in filteredValues" :data-value="value.key">
+                    <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onValueSelected(value.key)">
+                        <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 pointer-events-none">subdirectory_arrow_right</i>
+                        {{ value.value }}
+                    </button>
+                </li>
+
+                <li ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap" v-if="!filteredValues.length">
+                    <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100">{{ noMatchingDataText }}</button>
                 </li>
             </div>
         </div>
@@ -106,6 +137,12 @@ export default {
             type: String,
             default: 'Search or filter results...',
             description: 'Input placeholder'
+        },
+        selectPlaceholder: {
+            type: String,
+        },
+        enterPlaceholder: {
+            type: String,
         },
         searchText: {
             type: String,
@@ -149,7 +186,7 @@ export default {
         },
 
         dateConfig: null
-        
+
     },
 
     model: {
@@ -170,6 +207,8 @@ export default {
                 values: false,
             },
 
+            equal: true,
+            not_equal: true,
             range: false,
             option_values: [],
             selected_options: [],
@@ -178,6 +217,12 @@ export default {
             values: [],
             current_value: null,
             show_date: false,
+            show_close_icon: false,
+            show_icon: true,
+            not_equal_image: app_url +  "/public/img/tailwind_icons/not-equal.svg",
+            input_focus: false,
+            defaultPlaceholder: this.placeholder,
+            dynamicPlaceholder: this.placeholder,
         };
     },
 
@@ -201,13 +246,17 @@ export default {
                 });
             }
 
-            //console.log('Focus :' + this.filter_last_step);
+            this.input_focus = true;
+        },
+
+        onBlur() {
+            this.input_focus = false;
         },
 
         onInputDateSelected(selectedDates, dateStr, instance) {
             this.filtered[this.filter_index].value = dateStr;
 
-            let date = instance.formatDate(selectedDates[0], 'Y-m-d');
+            let date = selectedDates.length ? instance.formatDate(selectedDates[0], 'Y-m-d') : null;
 
             if (selectedDates.length > 1) {
                 let dates = [];
@@ -218,7 +267,7 @@ export default {
 
                 date = dates.join('-to-');
             }
-            
+
             this.selected_values.push({
                 key: date,
                 value: dateStr,
@@ -254,8 +303,8 @@ export default {
 
         onInput(evt) {
             this.search = evt.target.value;
-
-            let option_url = this.selected_options[this.filter_index].url;
+            
+            let option_url = this.selected_options.length > 0 && this.selected_options[this.filter_index] !== undefined ? this.selected_options[this.filter_index].url : '';
 
             if (this.search) {
                 if (option_url.indexOf('?') === -1) {
@@ -300,6 +349,7 @@ export default {
         onInputConfirm() {
             let path = window.location.href.replace(window.location.search, '');
             let args = '';
+            let redirect = true;
 
             if (this.search) {
                 args += '?search="' + this.search + '" ';
@@ -315,6 +365,11 @@ export default {
             this.filtered.forEach(function (filter, index) {
                 if (!args) {
                     args += '?search=';
+                }
+
+                if (! this.selected_operator.length || ! this.selected_values.length) {
+                    redirect = false;
+                    return;
                 }
 
                 if (this.selected_operator[index].key == '!=') {
@@ -339,12 +394,18 @@ export default {
 
             Cookies.set('search-string', search_string, expires);
 
-            window.location = path + args;
+            if (redirect) {
+                window.location = path + args;
+            }
         },
 
         onOptionSelected(value) {
             this.current_value = value;
+            this.equal = true;
+            this.not_equal = true;
             this.range = false;
+
+            this.onChangeSearchAndFilterText(this.selectPlaceholder, false);
 
             let option = false;
             let option_url = false;
@@ -367,6 +428,12 @@ export default {
 
                     if (typeof this.filter_list[i].type !== 'undefined' && this.filter_list[i].type == 'date') {
                         this.range = true;
+                    }
+
+                    if (typeof this.filter_list[i].operators !== 'undefined' && Object.keys(this.filter_list[i].operators).length) {
+                        this.equal = (typeof this.filter_list[i].operators.equal) ? this.filter_list[i].operators.equal : this.equal;
+                        this.not_equal = (typeof this.filter_list[i].operators['not_equal']) ? this.filter_list[i].operators['not_equal'] : this.not_equal;
+                        this.range = (typeof this.filter_list[i].operators['range']) ? this.filter_list[i].operators['range'] : this.range;
                     }
 
                     this.selected_options.push(this.filter_list[i]);
@@ -408,7 +475,8 @@ export default {
                     data.forEach(function (item) {
                         this.values.push({
                             key: (item.code) ? item.code : item.id,
-                            value: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name
+                            value: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
+                            level: (item.level) ? item.level : null,
                         });
                     }, this);
 
@@ -474,7 +542,10 @@ export default {
         },
 
         onValueSelected(value) {
+            this.show_close_icon = true;
             let select_value = false;
+
+            this.onChangeSearchAndFilterText(this.enterPlaceholder, false);
 
             for (let i = 0; i < this.values.length; i++) {
                 if (this.values[i].key == value) {
@@ -517,6 +588,8 @@ export default {
         },
 
         onFilterDelete(index) {
+            this.show_icon = true;
+
             this.filter_list.push(this.selected_options[index]);
 
             if (this.filter_last_step == 'options') {
@@ -530,6 +603,14 @@ export default {
             this.selected_values.splice(index, 1);
 
             this.show_date = false;
+            
+            if (this.filter_index == 0) {
+                this.onChangeSearchAndFilterText(this.defaultPlaceholder, true);
+                this.show_close_icon = false;
+            } else {
+                this.show_icon = false;
+                this.show_close_icon = true;
+            }
 
             this.filter_last_step = 'options';
         },
@@ -541,6 +622,11 @@ export default {
             Cookies.remove('search-string');
 
             this.onInputConfirm();
+        },
+
+        onChangeSearchAndFilterText(arg, param) {
+            this.dynamicPlaceholder = arg;
+            this.show_icon = param;
         },
 
         convertOption(options) {
@@ -567,12 +653,14 @@ export default {
         },
 
         closeIfClickedOutside(event) {
-            if (!document.getElementById('search-field-' + this._uid).contains(event.target) && event.target.className != 'btn btn-link') {
-                this.visible.options = false;
-                this.visible.operator = false;
-                this.visible.values = false;
+            if (document.getElementById('search-field-' + this._uid)) {
+                if (!document.getElementById('search-field-' + this._uid).contains(event.target) && event.target.getAttribute('data-btn') != 'btn btn-link') {
+                    this.visible.options = false;
+                    this.visible.operator = false;
+                    this.visible.values = false;
 
-                document.removeEventListener('click', this.closeIfClickedOutside);
+                    document.removeEventListener('click', this.closeIfClickedOutside);
+                }
             }
         },
     },
@@ -591,8 +679,6 @@ export default {
             this.value = this.value.replace('>=', ':');
 
             let search_string = this.value.replace('not ', '').replace(' not ', ' ');
-
-            console.log(search_string);
 
             search_string = search_string.split(' ');
 
@@ -646,7 +732,7 @@ export default {
                                     value_assigned = true
                                 }
                             }, this);
-                            
+
                             if (!value_assigned && (cookie != undefined && cookie[_filter.key])) {
                                 this.selected_values.push(cookie[_filter.key]);
                             }
@@ -672,8 +758,6 @@ export default {
                     let filter_values = this.convertOption(_filter.values);
 
                     if (_filter.key == filter.option) {
-                        console.log('Filter YES');
-
                         option = _filter.value;
                         operator = filter.operator;
 
@@ -684,8 +768,6 @@ export default {
                         }, this);
 
                         this.selected_options.push(this.filter_list[i]);
-
-                        console.log(operator);
 
                         this.selected_operator.push({
                             key: operator,
@@ -717,6 +799,13 @@ export default {
     },
 
     mounted() {
+        if (this.filter_index > 0) {
+            this.onChangeSearchAndFilterText(this.enterPlaceholder, false);
+        }
+
+        if (this.selected_values.length > 0) {
+            this.show_close_icon = true;
+        }
     },
 
     computed: {
@@ -746,7 +835,6 @@ export default {
             this.values.sort(function (a, b) {
                 var nameA = a.value.toUpperCase(); // ignore upper and lowercase
                 var nameB = b.value.toUpperCase(); // ignore upper and lowercase
-
                 if (nameA < nameB) {
                     return -1;
                 }
@@ -754,7 +842,6 @@ export default {
                 if (nameA > nameB) {
                     return 1;
                 }
-
                 // names must be equal
                 return 0;
             });
@@ -779,23 +866,6 @@ export default {
 </script>
 
 <style>
-    .searh-field {
-        border: 1px solid #dee2e6;
-        border-radius: 0.25rem;
-    }
-
-    .searh-field .tags-group {
-        display: contents;
-    }
-
-    .searh-field .el-tag.el-tag--primary {
-        background: #f6f9fc;
-        background-color: #f6f9fc;
-        border-color: #f6f9fc;
-        color: #8898aa;
-        margin-top: 7px;
-    }
-
     .searh-field .tags-group:hover > span {
         background:#cbd4de;
         background-color: #cbd4de;
@@ -804,11 +874,20 @@ export default {
 
     .searh-field .el-tag.el-tag--primary .el-tag__close.el-icon-close {
         color: #8898aa;
+        margin-top: -3px;
     }
 
-    .searh-field .el-tag-option {
-        border-radius: 0.25rem 0 0 0.25rem;
+    .searh-field .el-tag.el-tag--primary .el-tag__close.el-icon-close:hover {
+        background-color: transparent;
+    }
+
+    html[dir='ltr'] .searh-field .el-tag-option {
+        border-radius: 0.50rem 0 0 0.50rem;
         margin-left: 10px;
+    }
+
+    html[dir='rtl'] .searh-field .el-tag-option {
+        border-radius: 0 0.5rem 0.5rem 0;
     }
 
     .searh-field .el-tag-operator {
@@ -817,49 +896,22 @@ export default {
         margin-right: -1px;
     }
 
-    .searh-field .el-tag-value {
-        border-radius: 0 0.25rem 0.25rem 0;
+    html[dir='ltr'] .searh-field .el-tag-value {
+        border-radius: 0 0.50rem 0.50rem 0;
         margin-right: 10px;
+    }
+
+    html[dir='rtl'] .searh-field .el-tag-value {
+        border-radius: 0.5rem 0 0 0.5rem;
+        margin-left: 10px;
+    }
+
+    html[dir='rtl'] .searh-field .el-tag-operator {
+        border-radius: 0;
     }
 
     .searh-field .el-select.input-new-tag {
         width: 100%;
-    }
-
-    .searh-field .input-full {
-        width: 100%;
-    }
-
-    .searh-field .btn.btn-link {
-        width: inherit;
-        text-align: left;
-        display: flex;
-        margin: 0;
-        text-overflow: inherit;
-        text-align: left;
-        text-overflow: ellipsis;
-        padding: unset;
-        color: #212529;
-    }
-
-    .searh-field .btn.btn-link.clear {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 45px;
-        height: 45px;
-        -webkit-box-pack: center;
-        -ms-flex-pack: center;
-        justify-content: center;
-        -webkit-box-align: center;
-        -ms-flex-align: center;
-        align-items: center;
-        color: #adb5bd;
-        opacity: 1;
-    }
-
-    .searh-field .btn.btn-link.clear:hover {
-        color: #8898aa;
     }
 
     .searh-field .btn-helptext {
@@ -883,5 +935,31 @@ export default {
 
     .searh-field .dropdown-menu.operator .btn i:not(:last-child), .btn svg:not(:last-child) {
         margin-right: inherit !important;
+    }
+
+    .dropdown-menu {
+        z-index: 1000;
+        display: none;
+        min-width: 10rem;
+    }
+
+    .dropdown-menu li {
+        margin-bottom: 5px;
+    }
+
+    .dropdown-menu.operator li {
+        margin-bottom: 5px;
+    }
+
+    .dropdown-menu li:last-child {
+        margin-bottom: 0;
+    }
+
+    .dropdown-menu > li > button {
+        width: 100%;
+    }
+
+    .dropdown-menu.show {
+        display: block;
     }
 </style>

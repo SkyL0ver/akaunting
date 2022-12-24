@@ -28,6 +28,7 @@ class Transactions extends Export implements WithColumnFormatting
     {
         return [
             'type',
+            'number',
             'paid_at',
             'amount',
             'currency_code',
@@ -46,7 +47,7 @@ class Transactions extends Export implements WithColumnFormatting
     public function columnFormats(): array
     {
         return [
-            'B' => NumberFormat::FORMAT_DATE_YYYYMMDD,
+            'C' => NumberFormat::FORMAT_DATE_YYYYMMDD,
         ];
     }
 }

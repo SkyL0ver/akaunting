@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'default' => env('FILESYSTEM_DRIVER', 'uploads'),
+    'default' => env('FILESYSTEM_DISK', 'uploads'),
 
     /*
     |--------------------------------------------------------------------------
@@ -45,6 +45,24 @@ return [
 
     'max_size' => env('FILESYSTEM_MAX_SIZE', '2'),
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allowed image max width, in pixes
+    |--------------------------------------------------------------------------
+    */
+
+    'max_width' => env('FILESYSTEM_MAX_WIDTH', '1000'),
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Allowed image max height, in pixes
+    |--------------------------------------------------------------------------
+    */
+
+    'max_height' => env('FILESYSTEM_MAX_HEIGHT', '1000'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
@@ -52,7 +70,7 @@ return [
     |
     | Here you may configure as many filesystem "disks" as you wish, and you
     | may even configure multiple disks of the same driver. Defaults have
-    | been setup for each driver as an example of the required options.
+    | been set up for each driver as an example of the required values.
     |
     | Supported Drivers: "local", "ftp", "sftp", "s3"
     |

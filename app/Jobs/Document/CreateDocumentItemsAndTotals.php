@@ -30,7 +30,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
     {
         $precision = config('money.' . $this->document->currency_code . '.precision');
 
-        list($sub_total, $discount_amount_total, $taxes) = $this->createItems();
+        list($sub_total, $actual_total, $discount_amount_total, $taxes) = $this->createItems();
 
         $sort_order = 1;
 
@@ -47,7 +47,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
             'created_by' => $this->request['created_by'],
         ]);
 
-        $this->request['amount'] += $sub_total;
+        $this->request['amount'] += $actual_total;
 
         $sort_order++;
 
@@ -68,9 +68,9 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
             $sort_order++;
         }
 
-        if (!empty($this->request['discount'])) {
+        if (! empty($this->request['discount'])) {
             if ($this->request['discount_type'] === 'percentage') {
-                $discount_total = $sub_total * ($this->request['discount'] / 100);
+                $discount_total = ($sub_total - $discount_amount_total) * ($this->request['discount'] / 100);
             } else {
                 $discount_total = $this->request['discount'];
             }
@@ -87,13 +87,11 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
                 'created_by' => $this->request['created_by'],
             ]);
 
-            $this->request['amount'] -= $discount_total;
-
             $sort_order++;
         }
 
         // Add taxes
-        if (!empty($taxes)) {
+        if (! empty($taxes)) {
             foreach ($taxes as $tax) {
                 DocumentTotal::create([
                     'company_id' => $this->document->company_id,
@@ -114,7 +112,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
         }
 
         // Add extra totals, i.e. shipping fee
-        if (!empty($this->request['totals'])) {
+        if (! empty($this->request['totals'])) {
             foreach ($this->request['totals'] as $total) {
                 $total['company_id'] = $this->document->company_id;
                 $total['type'] = $this->document->type;
@@ -151,7 +149,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
             'document_id' => $this->document->id,
             'code' => 'total',
             'name' => 'invoices.total',
-            'amount' =>  $this->request['amount'],
+            'amount' => $this->request['amount'],
             'sort_order' => $sort_order,
             'created_from' => $this->request['created_from'],
             'created_by' => $this->request['created_by'],
@@ -160,19 +158,29 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
 
     protected function createItems(): array
     {
-        $sub_total = $discount_amount = $discount_amount_total = 0;
+        $sub_total = $actual_total = $discount_amount = $discount_amount_total = 0;
 
         $taxes = [];
 
         if (empty($this->request['items'])) {
-            return [$sub_total, $discount_amount_total, $taxes];
+            return [$sub_total, $actual_total, $discount_amount_total, $taxes];
         }
 
-        foreach ((array) $this->request['items'] as $item) {
+        if (! empty($this->request['discount']) && $this->request['discount_type'] !== 'percentage') {
+            $for_fixed_discount = $this->fixedDiscountCalculate();
+        }
+
+        foreach ((array) $this->request['items'] as $key => $item) {
             $item['global_discount'] = 0;
 
-            if (!empty($this->request['discount'])) {
-                $item['global_discount'] = $this->request['discount'];
+            if (! empty($this->request['discount'])) {
+                if (isset($for_fixed_discount)) {
+                    $item['global_discount'] = ($for_fixed_discount[$key] / ($for_fixed_discount['total'] / 100)) * ($this->request['discount'] / 100);
+                    $item['global_discount_type'] = '';
+                } else {
+                    $item['global_discount'] = $this->request['discount'];
+                    $item['global_discount_type'] = $this->request['discount_type'];
+                }
             }
 
             $item['created_from'] = $this->request['created_from'];
@@ -190,7 +198,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
                     'enabled' => '1',
                 ];
 
-                if (!empty($item['tax_ids'])) {
+                if (! empty($item['tax_ids'])) {
                     $new_item_request['tax_ids'] = $item['tax_ids'];
                 }
 
@@ -205,7 +213,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
 
             $discount_amount = 0;
 
-            if (!empty($item['discount'])) {
+            if (! empty($item['discount'])) {
                 if ($item['discount_type'] === 'percentage') {
                     $discount_amount = ($item_amount * ($item['discount'] / 100));
                 } else {
@@ -214,11 +222,12 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
             }
 
             // Calculate totals
-            $sub_total += $document_item->total;
+            $sub_total += $item_amount;
+            $actual_total += $document_item->total;
 
             $discount_amount_total += $discount_amount;
 
-            if (!$document_item->item_taxes) {
+            if (! $document_item->item_taxes) {
                 continue;
             }
 
@@ -235,6 +244,32 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
             }
         }
 
-        return [$sub_total, $discount_amount_total, $taxes];
+        return [$sub_total, $actual_total, $discount_amount_total, $taxes];
+    }
+
+    public function fixedDiscountCalculate()
+    {
+        $total = 0;
+
+        foreach ((array) $this->request['items'] as $item) {
+            $sub = (double) $item['price'] * (double) $item['quantity'];
+
+            if (! empty($this->request['discount'])) {
+                if (isset($item['discount']) && isset($item['discount_type'])) {
+                    if ($item['discount_type'] === 'percentage') {
+                        $sub -= ($sub * ($item['discount'] / 100));
+                    } else {
+                        $sub -= $item['discount'];
+                    }
+                }
+            }
+
+            $total += $sub;
+            $item_total[] = $sub;
+        }
+
+        $item_total['total'] = $total;
+
+        return $item_total;
     }
 }

@@ -11,7 +11,7 @@ use App\Jobs\Banking\UpdateReconciliation;
 use App\Models\Banking\Account;
 use App\Models\Banking\Reconciliation;
 use App\Models\Banking\Transaction;
-use Date;
+use App\Utilities\Date;
 
 class Reconciliations extends Controller
 {
@@ -24,9 +24,17 @@ class Reconciliations extends Controller
     {
         $reconciliations = Reconciliation::with('account')->collect();
 
-        $accounts = collect(Account::enabled()->orderBy('name')->pluck('name', 'id'));
+        $reconciled_amount = money($reconciliations->where('reconciled', 1)->sum('closing_balance'), default_currency(), true);
+        $in_progress_amount = money($reconciliations->where('reconciled', 0)->sum('closing_balance'), default_currency(), true);
 
-        return $this->response('banking.reconciliations.index', compact('reconciliations', 'accounts'));
+        $summary_amounts = [
+            'amount_exact'              => $reconciled_amount->format(),
+            'amount_for_humans'         => $reconciled_amount->formatForHumans(),
+            'in_progress_exact'         => $in_progress_amount->format(),
+            'in_progress_for_humans'    => $in_progress_amount->formatForHumans(),
+        ];
+
+        return $this->response('banking.reconciliations.index', compact('reconciliations', 'summary_amounts'));
     }
 
     /**
@@ -46,8 +54,6 @@ class Reconciliations extends Controller
      */
     public function create()
     {
-        $accounts = Account::enabled()->pluck('name', 'id');
-
         $account_id = request('account_id', setting('default.account'));
         $started_at = request('started_at', Date::now()->firstOfMonth()->toDateString());
         $ended_at = request('ended_at', Date::now()->endOfMonth()->toDateString());
@@ -60,7 +66,7 @@ class Reconciliations extends Controller
 
         $opening_balance = $this->getOpeningBalance($account, $started_at);
 
-        return view('banking.reconciliations.create', compact('accounts', 'account', 'currency', 'opening_balance', 'transactions'));
+        return view('banking.reconciliations.create', compact('account', 'currency', 'opening_balance', 'transactions'));
     }
 
     /**

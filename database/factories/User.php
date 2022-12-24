@@ -26,14 +26,15 @@ class User extends Factory
 
         return [
             'name' => $this->faker->name,
-            'email' => $this->faker->unique()->safeEmail,
+            'email' => $this->faker->freeEmail,
             'password' => $password,
             'password_confirmation' => $password,
             'remember_token' => Str::random(10),
             'locale' => 'en-GB',
             'companies' => ['1'],
-            'roles' => ['1'],
+            'roles' => '1',
             'enabled' => $this->faker->boolean ? 1 : 0,
+            'landing_page' => 'dashboard',
             'created_from' => 'core::factory',
         ];
     }

@@ -2,20 +2,27 @@
 
 namespace App\Models\Common;
 
+use App\Traits\Media;
 use App\Abstracts\Model;
-use App\Models\Document\Document;
-use App\Scopes\Contact as Scope;
 use App\Traits\Contacts;
 use App\Traits\Currencies;
-use App\Traits\Media;
 use App\Traits\Transactions;
+use App\Scopes\Contact as Scope;
+use App\Models\Document\Document;
+use App\Utilities\Date;
+use App\Utilities\Str;
 use Bkwld\Cloner\Cloneable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class Contact extends Model
 {
     use Cloneable, Contacts, Currencies, HasFactory, Media, Notifiable, Transactions;
+
+    public const CUSTOMER_TYPE = 'customer';
+    public const VENDOR_TYPE = 'vendor';
+    public const EMPLOYEE_TYPE = 'employee';
 
     protected $table = 'contacts';
 
@@ -87,7 +94,7 @@ class Contact extends Model
 
     public function bills()
     {
-        return $this->documents()->where('type', Document::BILL_TYPE);
+        return $this->documents()->where('documents.type', Document::BILL_TYPE);
     }
 
     public function currency()
@@ -97,17 +104,17 @@ class Contact extends Model
 
     public function expense_transactions()
     {
-        return $this->transactions()->whereIn('type', (array) $this->getExpenseTypes());
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getExpenseTypes());
     }
 
     public function income_transactions()
     {
-        return $this->transactions()->whereIn('type', (array) $this->getIncomeTypes());
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getIncomeTypes());
     }
 
     public function invoices()
     {
-        return $this->documents()->where('type', Document::INVOICE_TYPE);
+        return $this->documents()->where('documents.type', Document::INVOICE_TYPE);
     }
 
     public function transactions()
@@ -169,6 +176,11 @@ class Contact extends Model
         $this->user_id = null;
     }
 
+    public function getInitialsAttribute($value)
+    {
+        return Str::getInitials($this->name);
+    }
+
     /**
      * Get the current balance.
      *
@@ -191,7 +203,35 @@ class Contact extends Model
 
         $collection = $this->isCustomer() ? 'invoices' : 'bills';
 
-        $this->$collection->whereNotIn('status', ['draft', 'cancelled', 'paid'])->each(function ($item) use (&$amount) {
+        $this->$collection->whereIn('status', ['sent', 'received', 'viewed', 'partial'])->each(function ($item) use (&$amount) {
+            $amount += $this->convertToDefault($item->amount_due, $item->currency_code, $item->currency_rate);
+        });
+
+        return $amount;
+    }
+
+    public function getOpenAttribute()
+    {
+        $amount = 0;
+        $today = Date::today()->toDateString();
+
+        $collection = $this->isCustomer() ? 'invoices' : 'bills';
+
+        $this->$collection->whereIn('status', ['sent', 'received', 'viewed', 'partial'])->where('due_at', '>=', $today)->each(function ($item) use (&$amount) {
+            $amount += $this->convertToDefault($item->amount_due, $item->currency_code, $item->currency_rate);
+        });
+
+        return $amount;
+    }
+
+    public function getOverdueAttribute()
+    {
+        $amount = 0;
+        $today = Date::today()->toDateString();
+
+        $collection = $this->isCustomer() ? 'invoices' : 'bills';
+
+        $this->$collection->whereIn('status', ['sent', 'received', 'viewed', 'partial'])->where('due_at', '<', $today)->each(function ($item) use (&$amount) {
             $amount += $this->convertToDefault($item->amount_due, $item->currency_code, $item->currency_rate);
         });
 
@@ -214,11 +254,88 @@ class Contact extends Model
             $location[] = $this->state;
         }
 
-        if ($this->country) {
+        if ($this->country && in_array($this->country, trans('countries'))) {
             $location[] = trans('countries.' . $this->country);
         }
 
         return implode(', ', $location);
+    }
+
+    /**
+     * Get the line actions.
+     *
+     * @return array
+     */
+    public function getLineActionsAttribute()
+    {
+        $actions = [];
+
+        $group = config('type.contact.' . $this->type . '.group');
+        $prefix = config('type.contact.' . $this->type . '.route.prefix');
+        $permission_prefix = config('type.contact.' . $this->type . '.permission.prefix');
+        $translation_prefix = config('type.contact.' . $this->type . '.translation.prefix');
+
+        if (empty($prefix)) {
+            if (in_array($this->type, (array) $this->getCustomerTypes())) {
+                $prefix = config('type.contact.customer.route.prefix');
+            } elseif (in_array($this->type, (array) $this->getVendorTypes())) {
+                $prefix = config('type.contact.vendor.route.prefix');
+            } else {
+                return $actions;
+            }
+        }
+
+        try {
+            $actions[] = [
+                'title' => trans('general.show'),
+                'icon' => 'visibility',
+                'url' => route($prefix . '.show', $this->id),
+                'permission' => 'read-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-show-' . $this->type . '-' . $this->id,
+                ],
+            ];
+        } catch (\Exception $e) {}
+
+        try {
+            $actions[] = [
+                'title' => trans('general.edit'),
+                'icon' => 'edit',
+                'url' => route($prefix . '.edit', $this->id),
+                'permission' => 'update-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-edit-' . $this->type . '-' . $this->id,
+                ],
+            ];
+        } catch (\Exception $e) {}
+
+        try {
+            $actions[] = [
+                'title' => trans('general.duplicate'),
+                'icon' => 'file_copy',
+                'url' => route($prefix . '.duplicate', $this->id),
+                'permission' => 'create-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-duplicate-' . $this->type . '-' . $this->id,
+                ],
+            ];
+        } catch (\Exception $e) {}
+
+        try {
+            $actions[] = [
+                'type' => 'delete',
+                'icon' => 'delete',
+                'title' => $translation_prefix,
+                'route' => $prefix . '.destroy',
+                'permission' => 'delete-' . $group . '-' . $permission_prefix,
+                'attributes' => [
+                    'id' => 'index-line-actions-delete-' . $this->type . '-' . $this->id,
+                ],
+                'model' => $this,
+            ];
+        } catch (\Exception $e) {}
+
+        return $actions;
     }
 
     /**

@@ -340,7 +340,7 @@ class Item extends Controller
 
         $releases = $this->getModuleReleases($alias, $data);
 
-        $html = view('partials.modules.releases', compact('releases'))->render();
+        $html = view('components.layouts.modules.releases', compact('releases'))->render();
 
         return response()->json([
             'success' => true,
@@ -361,7 +361,7 @@ class Item extends Controller
 
         $reviews = $this->getModuleReviews($alias, $data);
 
-        $html = view('partials.modules.reviews', compact('reviews'))->render();
+        $html = view('components.layouts.modules.reviews', compact('reviews'))->render();
 
         return response()->json([
             'success' => true,

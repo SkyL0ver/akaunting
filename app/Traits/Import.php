@@ -6,17 +6,20 @@ use App\Http\Requests\Banking\Account as AccountRequest;
 use App\Http\Requests\Common\Contact as ContactRequest;
 use App\Http\Requests\Common\Item as ItemRequest;
 use App\Http\Requests\Setting\Category as CategoryRequest;
+use App\Http\Requests\Setting\Currency as CurrencyRequest;
 use App\Http\Requests\Setting\Tax as TaxRequest;
 use App\Jobs\Banking\CreateAccount;
 use App\Jobs\Common\CreateContact;
 use App\Jobs\Common\CreateItem;
 use App\Jobs\Setting\CreateCategory;
+use App\Jobs\Setting\CreateCurrency;
 use App\Jobs\Setting\CreateTax;
 use App\Models\Banking\Account;
 use App\Models\Common\Contact;
 use App\Models\Common\Item;
 use App\Models\Document\Document;
 use App\Models\Setting\Category;
+use App\Models\Setting\Currency;
 use App\Models\Setting\Tax;
 use App\Traits\Jobs;
 use Illuminate\Support\Facades\Validator;
@@ -57,6 +60,11 @@ trait Import
         return is_null($id) ? $id : (int) $id;
     }
 
+    public function getCategoryType($type)
+    {
+        return array_key_exists($type, config('type.category')) ? $type : 'other';
+    }
+
     public function getContactId($row, $type = null)
     {
         $id = isset($row['contact_id']) ? $row['contact_id'] : null;
@@ -72,6 +80,33 @@ trait Import
         }
 
         return is_null($id) ? $id : (int) $id;
+    }
+
+    public function getCurrencyCode($row)
+    {
+        $currency = Currency::where('code', $row['currency_code'])->first();
+
+        if (!empty($currency)) {
+            return $currency->code;
+        }
+
+        $data = [
+            'company_id'    => company_id(),
+            'code'          => $row['currency_code'],
+            'name'          => isset($row['currency_name']) ? $row['currency_name'] : config('money.' . $row['currency_code'] . '.name'),
+            'rate'          => isset($row['currency_rate']) ? $row['currency_rate'] : 1,
+            'symbol'        => isset($row['currency_symbol']) ? $row['currency_symbol'] : config('money.' . $row['currency_code'] . '.symbol'),
+            'precision'     => isset($row['currency_precision']) ? $row['currency_precision'] : config('money.' . $row['currency_code'] . '.precision'),
+            'decimal_mark'  => isset($row['currency_decimal_mark']) ? $row['currency_decimal_mark'] : config('money.' . $row['currency_code'] . '.decimal_mark'),
+            'created_from'  => $row['created_from'],
+            'created_by'    => $row['created_by'],
+        ];
+
+        Validator::validate($data, [(new CurrencyRequest)->rules()]);
+
+        $currency = $this->dispatch(new CreateCurrency($data));
+
+        return $currency->code;
     }
 
     public function getDocumentId($row)
@@ -165,7 +200,7 @@ trait Import
             'company_id'        => company_id(),
             'name'              => $row['account_name'],
             'number'            => !empty($row['account_number']) ? $row['account_number'] : (string) rand(1, 10000),
-            'currency_code'     => !empty($row['currency_code']) ? $row['currency_code'] : setting('default.currency'),
+            'currency_code'     => !empty($row['currency_code']) ? $row['currency_code'] : default_currency(),
             'opening_balance'   => !empty($row['opening_balance']) ? $row['opening_balance'] : 0,
             'enabled'           => 1,
             'created_from'      => $row['created_from'],
@@ -191,7 +226,7 @@ trait Import
             'company_id'        => company_id(),
             'number'            => $row['account_number'],
             'name'              => !empty($row['account_name']) ? $row['account_name'] : $row['account_number'],
-            'currency_code'     => !empty($row['currency_code']) ? $row['currency_code'] : setting('default.currency'),
+            'currency_code'     => !empty($row['currency_code']) ? $row['currency_code'] : default_currency(),
             'opening_balance'   => !empty($row['opening_balance']) ? $row['opening_balance'] : 0,
             'enabled'           => 1,
             'created_from'      => $row['created_from'],
@@ -207,7 +242,7 @@ trait Import
 
     public function getCategoryIdFromName($row, $type)
     {
-        $category_id = Category::where('name', $row['category_name'])->pluck('id')->first();
+        $category_id = Category::withSubCategory()->where('name', $row['category_name'])->pluck('id')->first();
 
         if (!empty($category_id)) {
             return $category_id;
@@ -243,7 +278,7 @@ trait Import
             'email'             => $row['contact_email'],
             'type'              => $type,
             'name'              => !empty($row['contact_name']) ? $row['contact_name'] : $row['contact_email'],
-            'currency_code'     => !empty($row['contact_currency']) ? $row['contact_currency'] : setting('default.currency'),
+            'currency_code'     => !empty($row['contact_currency']) ? $row['contact_currency'] : default_currency(),
             'enabled'           => 1,
             'created_from'      => $row['created_from'],
             'created_by'        => $row['created_by'],
@@ -269,7 +304,7 @@ trait Import
             'name'              => $row['contact_name'],
             'type'              => $type,
             'email'             => !empty($row['contact_email']) ? $row['contact_email'] : null,
-            'currency_code'     => !empty($row['contact_currency']) ? $row['contact_currency'] : setting('default.currency'),
+            'currency_code'     => !empty($row['contact_currency']) ? $row['contact_currency'] : default_currency(),
             'enabled'           => 1,
             'created_from'      => $row['created_from'],
             'created_by'        => $row['created_by'],

@@ -4,7 +4,21 @@ return [
 
     'api_key'               => 'Token de API',
     'my_apps'               => 'Meus Apps',
+    'checkout'              => 'Finalizar pedido',
+    'documentation'         => 'Documentação',
+
+    'home'                  => 'Principal',
+    'tiles'                 => 'Lista',
+    'item'                  => 'Detalhes do app',
     'pre_sale'              => 'Pré-Venda',
+    'no_apps'               => 'Verifique os apps mais profissionais para seu negócio e obtenha-os ao melhor preço.',
+    'learn_more'            => 'Leia mais',
+    'see_apps'              => 'Ver apps',
+    'no_apps_marketing'     => 'Faça seu negócio com profissionalismo',
+    'premium_banner'        => 'TROCAR PARA PREMIUM HOJE MESMO',
+    'see_all'               => 'Ver todos',
+    'see_all_type'          => 'Ver todos :type',
+    'saving'                => 'Economiza :saved-price por ano!',
     'top_paid'              => 'Pago a maior',
     'new'                   => 'Novo',
     'top_free'              => 'Melhores Grátis',
@@ -26,6 +40,17 @@ return [
     'become_developer'      => 'Você é um desenvolvedor? <a href=":url" target="_blank">Aqui</a> você pode aprender como criar um app e começar a vender hoje!',
     'recommended_apps'      => 'Apps Recomendados',
     'can_not_install'       => 'Assinaturas mensais estão disponíveis apenas no serviço na nuvem. <a href="https://akaunting.com/upgrade-to-yearly" target="_blank">Saiba mais.</a>',
+    'apps_managing'         => 'Verifique os apps mais populares e comece a gerenciar suas finanças profissionalmente hoje.',
+    'ready'                 => 'Disponível',
+    'popular_this_week'     => 'Popular dessa semana',
+    'install_cloud'         => 'Usar Serviço na Nuvem',
+    'get_cloud'             => 'Obter Serviço de Nuvem',
+    'get_premium_cloud'     => 'Obter Nuvem Premium',
+    'switch_to_cloud'       => 'Alternar para Núvem',
+    'hosted_on_akaunting'   => 'Hospedado em akaunting.com',
+    'only_works_cloud'      => 'Este aplicativo está disponível apenas em <strong>Nuvem</strong>.',
+    'only_premium_plan'     => 'Este aplicativo funciona apenas com o <strong>Serviço Premium na Nuvem</strong>.',
+    'not_found'             => 'Nenhum módulo encontrado',
 
     'about'                 => 'Sobre',
 
@@ -36,13 +61,22 @@ return [
     'view'                  => 'Ver',
     'back'                  => 'Voltar',
 
+    'use_app'               => 'Comece a usar o app agora',
+
+    'see_more'              => 'Ver mais',
+
     'installed'             => ':module instalado',
     'uninstalled'           => ':module removido',
     'updated_2'             => ':module atualizado',
     'enabled'               => ':module ativado',
     'disabled'              => ':module desativado',
+    'per_month'             => 'por mês',
+    'pre_sale_uninstall'    => 'Não perca o preço com desconto para a pré-venda!',
+    'pre_sale_install'      => 'Você terá o app no final da pré-venda.',
 
     'tab' => [
+        'features'          => 'Funcionalidades',
+        'screenshots'       => 'Capturas de tela',
         'installation'      => 'Instalação',
         'faq'               => 'Perguntas frequentes',
         'changelog'         => 'Log de alterações',

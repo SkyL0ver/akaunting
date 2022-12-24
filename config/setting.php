@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Common\Contact;
+use App\Models\Banking\Transaction;
+
 return [
 
 	/*
@@ -119,22 +122,32 @@ return [
             'hide_amount'               => env('SETTING_FALLBACK_INVOICE_HIDE_AMOUNT', false),
             'payment_terms'             => env('SETTING_FALLBACK_INVOICE_PAYMENT_TERMS', '0'),
             'template'                  => env('SETTING_FALLBACK_INVOICE_TEMPLATE', 'default'),
-            'color'                     => env('SETTING_FALLBACK_INVOICE_COLOR', '#55588b'),
+            'color'                     => env('SETTING_FALLBACK_INVOICE_COLOR', 'purple-500'),
             'logo_size_width'           => env('SETTING_FALLBACK_INVOICE_LOGO_SIZE_WIDTH', 128),
             'logo_size_height'          => env('SETTING_FALLBACK_INVOICE_LOGO_SIZE_HEIGHT', 128),
             'item_search_char_limit'    => env('SETTING_FALLBACK_INVOICE_ITEM_SEARCH_CHAR_LIMIT', 3),
+        ],
+        'invoice-recurring' => [
+            'number_prefix'             => env('SETTING_FALLBACK_INVOICE_RECURRING_NUMBER_PREFIX', 'RCI-'),
+            'number_digit'              => env('SETTING_FALLBACK_INVOICE_RECURRING_NUMBER_DIGIT', '5'),
+            'number_next'               => env('SETTING_FALLBACK_INVOICE_RECURRING_NUMBER_NEXT', '1'),
         ],
         'bill' => [
             'number_prefix'             => env('SETTING_FALLBACK_BILL_NUMBER_PREFIX', 'BILL-'),
             'number_digit'              => env('SETTING_FALLBACK_BILL_NUMBER_DIGIT', '5'),
             'number_next'               => env('SETTING_FALLBACK_BILL_NUMBER_NEXT', '1'),
-            'item_name'                 => env('SETTING_FALLBACK_BILL_ITEM_NAME', 'settings.bill.item'),
-            'price_name'                => env('SETTING_FALLBACK_BILL_PRICE_NAME', 'settings.bill.price'),
-            'quantity_name'             => env('SETTING_FALLBACK_BILL_QUANTITY_NAME', 'settings.bill.quantity'),
+            'item_name'                 => env('SETTING_FALLBACK_BILL_ITEM_NAME', 'settings.invoice.item'),
+            'price_name'                => env('SETTING_FALLBACK_BILL_PRICE_NAME', 'settings.invoice.price'),
+            'quantity_name'             => env('SETTING_FALLBACK_BILL_QUANTITY_NAME', 'settings.invoice.quantity'),
             'payment_terms'             => env('SETTING_FALLBACK_BILL_PAYMENT_TERMS', '0'),
             'template'                  => env('SETTING_FALLBACK_BILL_TEMPLATE', 'default'),
-            'color'                     => env('SETTING_FALLBACK_BILL_COLOR', '#55588b'),
+            'color'                     => env('SETTING_FALLBACK_BILL_COLOR', 'purple-500'),
             'item_search_char_limit'    => env('SETTING_FALLBACK_BILL_ITEM_SEARCH_CHAR_LIMIT', 3),
+        ],
+        'bill-recurring' => [
+            'number_prefix'             => env('SETTING_FALLBACK_BILL_RECURRING_NUMBER_PREFIX', 'RCB-'),
+            'number_digit'              => env('SETTING_FALLBACK_BILL_RECURRING_NUMBER_DIGIT', '5'),
+            'number_next'               => env('SETTING_FALLBACK_BILL_RECURRING_NUMBER_NEXT', '1'),
         ],
         'default' => [
             'currency'                  => env('SETTING_FALLBACK_DEFAULT_CURRENCY', 'USD'),
@@ -156,15 +169,23 @@ return [
         ],
         'contact' => [
             'type' => [
-                'customer'              => env('SETTING_FALLBACK_CONTACT_TYPE_CUSTOMER', 'customer'),
-                'vendor'                => env('SETTING_FALLBACK_CONTACT_TYPE_VENDOR', 'vendor'),
+                'customer'              => env('SETTING_FALLBACK_CONTACT_TYPE_CUSTOMER', Contact::CUSTOMER_TYPE),
+                'vendor'                => env('SETTING_FALLBACK_CONTACT_TYPE_VENDOR', Contact::VENDOR_TYPE),
             ],
         ],
         'transaction' => [
+            'number_prefix'             => env('SETTING_FALLBACK_TRANSACTION_NUMBER_PREFIX', 'TRA-'),
+            'number_digit'              => env('SETTING_FALLBACK_TRANSACTION_NUMBER_DIGIT', '5'),
+            'number_next'               => env('SETTING_FALLBACK_TRANSACTION_NUMBER_NEXT', '1'),
             'type' => [
-                'income'                => env('SETTING_FALLBACK_TRANSACTION_TYPE_INCOME', 'income'),
-                'expense'               => env('SETTING_FALLBACK_TRANSACTION_TYPE_EXPENSE', 'expense'),
+                'income'                => env('SETTING_FALLBACK_TRANSACTION_TYPE_INCOME', Transaction::INCOME_TYPE . ',' . Transaction::INCOME_TRANSFER_TYPE),
+                'expense'               => env('SETTING_FALLBACK_TRANSACTION_TYPE_EXPENSE', Transaction::EXPENSE_TYPE . ',' . Transaction::EXPENSE_TRANSFER_TYPE),
             ],
+        ],
+        'transaction-recurring' => [
+            'number_prefix'             => env('SETTING_FALLBACK_TRANSACTION_RECURRING_NUMBER_PREFIX', 'RCT-'),
+            'number_digit'              => env('SETTING_FALLBACK_TRANSACTION_RECURRING_NUMBER_DIGIT', '5'),
+            'number_next'               => env('SETTING_FALLBACK_TRANSACTION_RECURRING_NUMBER_NEXT', '1'),
         ],
         'transfer' => [
             'template'                  => env('SETTING_FALLBACK_BANKING_TEMPLATE', 'default'),

@@ -5,17 +5,19 @@ namespace App\Http\Controllers\Auth;
 use App\Abstracts\Http\Controller;
 use App\Events\Auth\LandingPageShowing;
 use App\Http\Requests\Auth\User as Request;
+use App\Jobs\Auth\CreateInvitation;
 use App\Jobs\Auth\CreateUser;
 use App\Jobs\Auth\DeleteUser;
 use App\Jobs\Auth\UpdateUser;
-use App\Models\Auth\User;
 use App\Models\Auth\Role;
+use App\Models\Auth\User;
+use App\Traits\Cloud;
 use App\Traits\Uploads;
 use Illuminate\Http\Request as BaseRequest;
 
 class Users extends Controller
 {
-    use Uploads;
+    use Cloud, Uploads;
 
     public function __construct()
     {
@@ -66,11 +68,13 @@ class Users extends Controller
 
         $roles = Role::all()->reject(function ($r) {
             return $r->hasPermission('read-client-portal');
-        });
+        })->pluck('display_name', 'id');
 
         $companies = user()->companies()->take(setting('default.select_limit'))->get()->sortBy('name')->pluck('name', 'id');
 
-        return view('auth.users.create', compact('roles', 'companies', 'landing_pages'));
+        $roles_url = $this->getCloudRolesPageUrl();
+
+        return view('auth.users.create', compact('roles', 'companies', 'landing_pages', 'roles_url'));
     }
 
     /**
@@ -87,7 +91,7 @@ class Users extends Controller
         if ($response['success']) {
             $response['redirect'] = route('users.index');
 
-            $message = trans('messages.success.added', ['type' => trans_choice('general.users', 1)]);
+            $message = trans('messages.success.invited', ['type' => trans_choice('general.users', 1)]);
 
             flash($message)->success();
         } else {
@@ -115,6 +119,7 @@ class Users extends Controller
         }
 
         $u = new \stdClass();
+        $u->role = $user->roles()->first();
         $u->landing_pages = [];
 
         event(new LandingPageShowing($u));
@@ -125,29 +130,33 @@ class Users extends Controller
             // Show only roles with customer permission
             $roles = Role::all()->reject(function ($r) {
                 return !$r->hasPermission('read-client-portal');
-            });
+            })->pluck('display_name', 'id');
         } else {
             // Don't show roles with customer permission
             $roles = Role::all()->reject(function ($r) {
                 return $r->hasPermission('read-client-portal');
-            });
+            })->pluck('display_name', 'id');
         }
 
         $companies = user()->companies()->take(setting('default.select_limit'))->get()->sortBy('name')->pluck('name', 'id');
 
         if ($user->company_ids) {
-            foreach($user->company_ids as $company_id) {
+            foreach ($user->company_ids as $company_id) {
                 if ($companies->has($company_id)) {
                     continue;
                 }
 
-                $company = \App\Models\Common\Company::find($company_id);
+                $company = company($company_id);
 
                 $companies->put($company->id, $company->name);
             }
         }
 
-        return view('auth.users.edit', compact('user', 'companies', 'roles', 'landing_pages'));
+        $roles_url = $this->getCloudRolesPageUrl();
+
+        $route = (request()->route()->getName() == 'profile.edit') ? 'profile.update' : 'users.update';
+
+        return view('auth.users.edit', compact('user', 'companies', 'roles', 'landing_pages', 'roles_url', 'route'));
     }
 
     /**
@@ -297,7 +306,7 @@ class Users extends Controller
         $column = $request['column'];
         $value = $request['value'];
 
-        if (!empty($column) && !empty($value)) {
+        if (! empty($column) && ! empty($value)) {
             switch ($column) {
                 case 'id':
                     $user = User::find((int) $value);
@@ -310,14 +319,71 @@ class Users extends Controller
             }
 
             $data = $user;
-        } elseif (!empty($column) && empty($value)) {
+        } elseif (! empty($column) && empty($value)) {
             $data = trans('validation.required', ['attribute' => $column]);
         }
 
         return response()->json([
             'errors'  => ($user) ? false : true,
             'success' => ($user) ? true : false,
-            'data'    => $data
+            'data'    => $data,
+        ]);
+    }
+
+    /**
+     * Process request for reinviting the specified resource.
+     *
+     * @param  User  $user
+     *
+     * @return Response
+     */
+    public function invite(User $user)
+    {
+        $response = $this->ajaxDispatch(new CreateInvitation($user, company()));
+
+        $response['redirect'] = route('users.index');
+
+        if ($response['success']) {
+            $message = trans('messages.success.invited', ['type' => trans_choice('general.users', 1)]);
+
+            flash($message)->success();
+        } else {
+            $message = $response['message'];
+
+            flash($message)->error()->important();
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * Process request for reinviting the specified resource.
+     *
+     * @param  Role  $role
+     *
+     * @return Response
+     */
+    public function landingPages(BaseRequest $request)
+    {
+        $role = false;
+
+        if ($request->has('role_id')) {
+            $role = Role::find($request->get('role_id'));
+        }
+
+        $u = new \stdClass();
+        $u->role = $role;
+        $u->landing_pages = [];
+
+        event(new LandingPageShowing($u));
+
+        $landing_pages = $u->landing_pages;
+
+        return response()->json([
+            'success' => true,
+            'error' => false,
+            'data' => $landing_pages,
+            'message' => 'Get role by landing pages..',
         ]);
     }
 }

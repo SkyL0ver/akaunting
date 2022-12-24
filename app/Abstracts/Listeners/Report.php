@@ -40,11 +40,32 @@ abstract class Report
     {
         $now = Date::now();
 
+        $financial_start = setting('localisation.financial_start');
+        $setting = explode('-', $financial_start);
+        $financial_start_day = ! empty($setting[0]) ? $setting[0] : '01';
+
+        $format = ($financial_start == '01-01')
+                    ? $this->getYearlyDateFormat()
+                    : (($financial_start_day != '01') ? $this->getDailyDateFormat() : $this->getMonthlyDateFormat());
+
         $years = [];
 
         $y = $now->addYears(2);
+
         for ($i = 0; $i < 10; $i++) {
-            $years[$y->year] = $y->year;
+            $financial_year = $this->getFinancialYear($y->year);
+
+            if ($financial_start == '01-01') {
+                $title = $financial_year->getStartDate()->copy()->format($format);
+            } else {
+                $start = $financial_year->getStartDate()->copy()->format($format);
+                $end = $financial_year->getEndDate()->copy()->format($format);
+
+                $title = $start . ' - ' . $end;
+            }
+
+            $years[$y->year] = $title;
+
             $y->subYear();
         }
 
@@ -84,7 +105,7 @@ abstract class Report
 
     public function getCategories($types, $limit = false)
     {
-        $model = Category::type($types)->orderBy('name');
+        $model = Category::withSubCategory()->type($types)->orderBy('name');
 
         if ($limit !== false) {
             $model->take(setting('default.select_limit'));
@@ -129,7 +150,7 @@ abstract class Report
 
     public function applySearchStringFilter($event)
     {
-        $input = request('search');
+        $input = request('search', '');
 
         // Remove year as it's handled based on financial start
         $search_year = 'year:' . $this->getSearchStringValue('year', '', $input);
@@ -183,14 +204,69 @@ abstract class Report
 
     public function setRowNamesAndValues($event, $rows)
     {
+        $nodes = [];
+
         foreach ($event->class->dates as $date) {
-            foreach ($event->class->tables as $table) {
+            foreach ($event->class->tables as $table_key => $table_name) {
                 foreach ($rows as $id => $name) {
-                    $event->class->row_names[$table][$id] = $name;
-                    $event->class->row_values[$table][$id][$date] = 0;
+                    $event->class->row_names[$table_key][$id] = $name;
+                    $event->class->row_values[$table_key][$id][$date] = 0;
+
+                    $nodes[$id] = null;
                 }
             }
         }
+
+        $this->setTreeNodes($event, $nodes);
+    }
+
+    public function setTreeNodes($event, $nodes)
+    {
+        foreach ($event->class->tables as $table_key => $table_name) {
+            foreach ($nodes as $id => $node) {
+                $event->class->row_tree_nodes[$table_key][$id] = $node;
+            }
+        }
+    }
+
+    public function getCategoriesNodes($categories)
+    {
+        $nodes = [];
+
+        foreach ($categories as $id => $name) {
+            $category = Category::withSubCategory()->find($id);
+
+            if (!is_null($category->parent_id)) {
+                unset($categories[$id]);
+
+                continue;
+            }
+
+            $nodes[$id] = $this->getSubCategories($category);
+        }
+
+        return $nodes;
+    }
+
+    public function getSubCategories($category)
+    {
+        if ($category->sub_categories->count() == 0) {
+            return null;
+        }
+
+        $sub_categories = [];
+
+        foreach ($category->sub_categories as $sub_category) {
+            $sub_category->load('sub_categories');
+
+            $sub_categories[$sub_category->id] = $this->getSubCategories($sub_category);
+        }
+
+        if (!empty($sub_categories)) {
+            $sub_categories[$category->id] = null;
+        }
+
+        return $sub_categories;
     }
 
     public function getFormattedDate($event, $date)

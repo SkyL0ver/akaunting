@@ -28,8 +28,11 @@ const app = new Vue({
     data: function () {
         return {
             form: new Form('transaction'),
-            bulk_action: new BulkAction('transactions')
+            bulk_action: new BulkAction('transactions'),
         }
     },
 
+    methods: {
+        //
+    },
 });

@@ -21,7 +21,7 @@ trait DateTime
         $default = 'd M Y';
 
         // Make sure it's installed
-        if (!config('app.installed') && (config('app.env') !== 'testing')) {
+        if (! config('app.installed') && ! env_is_testing()) {
             return $default;
         }
 
@@ -41,6 +41,7 @@ trait DateTime
     public function scopeMonthsOfYear($query, $field)
     {
         $now = Date::now();
+
         $year = $this->getSearchStringValue('year', $now->year);
 
         $financial_start = $this->getFinancialStart($year);
@@ -186,6 +187,13 @@ trait DateTime
         ];
 
         return $date_picker_shortcuts;
+    }
+
+    public function getDailyDateFormat($year = null)
+    {
+        $format = 'd M Y';
+
+        return $format;
     }
 
     public function getMonthlyDateFormat($year = null)

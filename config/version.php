@@ -4,21 +4,21 @@ return [
 
     'name'      =>  'Akaunting',
 
-    'code'      =>  'Document',
+    'code'      =>  'Tailwind',
 
-    'major'     =>  '2',
+    'major'     =>  '3',
 
-    'minor'     =>  '1',
+    'minor'     =>  '0',
 
-    'patch'     =>  '33',
+    'patch'     =>  '10',
 
     'build'     =>  '',
 
     'status'    =>  'Stable',
 
-    'date'      =>  '02-March-2021',
+    'date'      =>  '29-November-2022',
 
-    'time'      =>  '15:00',
+    'time'      =>  '01:00',
 
     'zone'      =>  'GMT +3',
 

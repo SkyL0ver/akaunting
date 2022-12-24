@@ -54,34 +54,42 @@ class Transfer extends Model
 
     public function expense_transaction()
     {
-        return $this->belongsTo('App\Models\Banking\Transaction', 'expense_transaction_id');
+        return $this->belongsTo('App\Models\Banking\Transaction', 'expense_transaction_id')
+                        ->withoutGlobalScope('App\Scopes\Transaction')
+                        ->withDefault(['name' => trans('general.na')]);
     }
 
     public function expense_account()
     {
         return $this->belongsToThrough(
-            'App\Models\Banking\Account',
-            'App\Models\Banking\Transaction',
-            null,
-            '',
-            ['App\Models\Banking\Transaction' => 'expense_transaction_id']
-        )->withDefault(['name' => trans('general.na')]);
+                            'App\Models\Banking\Account',
+                            'App\Models\Banking\Transaction',
+                            null,
+                            '',
+                            ['App\Models\Banking\Transaction' => 'expense_transaction_id']
+                        )
+                        ->withoutGlobalScope('App\Scopes\Transaction')
+                        ->withDefault(['name' => trans('general.na')]);
     }
 
     public function income_transaction()
     {
-        return $this->belongsTo('App\Models\Banking\Transaction', 'income_transaction_id');
+        return $this->belongsTo('App\Models\Banking\Transaction', 'income_transaction_id')
+                        ->withoutGlobalScope('App\Scopes\Transaction')
+                        ->withDefault(['name' => trans('general.na')]);
     }
 
     public function income_account()
     {
         return $this->belongsToThrough(
-            'App\Models\Banking\Account',
-            'App\Models\Banking\Transaction',
-            null,
-            '',
-            ['App\Models\Banking\Transaction' => 'income_transaction_id']
-        )->withDefault(['name' => trans('general.na')]);
+                            'App\Models\Banking\Account',
+                            'App\Models\Banking\Transaction',
+                            null,
+                            '',
+                            ['App\Models\Banking\Transaction' => 'income_transaction_id']
+                        )
+                        ->withoutGlobalScope('App\Scopes\Transaction')
+                        ->withDefault(['name' => trans('general.na')]);
     }
 
     /**
@@ -222,6 +230,59 @@ class Transfer extends Model
     public function getReferenceAttribute($value = null)
     {
         return $value ?: $this->expense_transaction->reference;
+    }
+
+    /**
+     * Get the line actions.
+     *
+     * @return array
+     */
+    public function getLineActionsAttribute()
+    {
+        $actions = [];
+
+        $actions[] = [
+            'title' => trans('general.show'),
+            'icon' => 'visibility',
+            'url' => route('transfers.show', $this->id),
+            'permission' => 'read-banking-transfers',
+            'attributes' => [
+                'id' => 'index-line-actions-show-transfer-' . $this->id,
+            ],
+        ];
+
+        $actions[] = [
+            'title' => trans('general.edit'),
+            'icon' => 'edit',
+            'url' => route('transfers.edit', $this->id),
+            'permission' => 'update-banking-transfers',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-transfer-' . $this->id,
+            ],
+        ];
+
+        $actions[] = [
+            'title' => trans('general.duplicate'),
+            'icon' => 'file_copy',
+            'url' => route('transfers.duplicate', $this->id),
+            'permission' => 'update-banking-transfers',
+            'attributes' => [
+                'id' => 'index-line-actions-duplicate-transfer-' . $this->id,
+            ],
+        ];
+
+        $actions[] = [
+            'type' => 'delete',
+            'icon' => 'delete',
+            'route' => 'transfers.destroy',
+            'permission' => 'delete-banking-transfers',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-transfer-' . $this->id,
+            ],
+            'model' => $this,
+        ];
+
+        return $actions;
     }
 
     /**

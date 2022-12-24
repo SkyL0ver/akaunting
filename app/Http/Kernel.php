@@ -48,12 +48,13 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            'api.auth',
+            'auth.basic.once',
             'auth.disabled',
             'throttle:api',
             'permission:read-api',
             'company.identify',
             'bindings',
+            'read.only',
             'language',
             'firewall.all',
         ],
@@ -62,12 +63,14 @@ class Kernel extends HttpKernel
             'web',
             'company.identify',
             'bindings',
+            'read.only',
             'wizard.redirect',
         ],
 
         'guest' => [
             'web',
             'auth.redirect',
+            'read.only',
         ],
 
         'admin' => [
@@ -76,6 +79,7 @@ class Kernel extends HttpKernel
             'auth.disabled',
             'company.identify',
             'bindings',
+            'read.only',
             'wizard.redirect',
             'menu.admin',
             'permission:read-admin-panel',
@@ -87,6 +91,7 @@ class Kernel extends HttpKernel
             'auth.disabled',
             'company.identify',
             'bindings',
+            'read.only',
             'permission:read-admin-panel',
         ],
 
@@ -96,8 +101,19 @@ class Kernel extends HttpKernel
             'auth.disabled',
             'company.identify',
             'bindings',
+            'read.only',
             'menu.portal',
             'permission:read-client-portal',
+        ],
+
+        'preview' => [
+            'web',
+            'auth',
+            'auth.disabled',
+            'company.identify',
+            'bindings',
+            'read.only',
+            'permission:read-admin-panel',
         ],
 
         'signed' => [
@@ -109,6 +125,7 @@ class Kernel extends HttpKernel
             'signature',
             'company.identify',
             'bindings',
+            'read.only',
             'header.x',
             'language',
             'firewall.all',
@@ -116,6 +133,10 @@ class Kernel extends HttpKernel
 
         'import' => [
             'throttle:import',
+        ],
+
+        'email' => [
+            'throttle:email',
         ],
     ];
 
@@ -146,6 +167,7 @@ class Kernel extends HttpKernel
 
         // Akaunting
         'api.key' => \App\Http\Middleware\RedirectIfNoApiKey::class,
+        'auth.basic.once' => \App\Http\Middleware\AuthenticateOnceWithBasicAuth::class,
         'auth.disabled' => \App\Http\Middleware\LogoutIfUserDisabled::class,
         'auth.redirect' => \App\Http\Middleware\RedirectIfAuthenticated::class,
         'company.identify' => \App\Http\Middleware\IdentifyCompany::class,
@@ -157,6 +179,7 @@ class Kernel extends HttpKernel
         'install.can' => \App\Http\Middleware\CanInstall::class,
         'install.redirect' => \App\Http\Middleware\RedirectIfNotInstalled::class,
         'money' => \App\Http\Middleware\Money::class,
+        'read.only' => \App\Http\Middleware\CheckForReadOnlyMode::class,
         'wizard.redirect' => \App\Http\Middleware\RedirectIfWizardNotCompleted::class,
 
         // Vendor

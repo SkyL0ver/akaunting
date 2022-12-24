@@ -2,6 +2,7 @@
 
 namespace App\Utilities;
 
+use Akaunting\Money\Money;
 use App\Models\Setting\Currency;
 
 class Overrider
@@ -52,14 +53,17 @@ class Overrider
         }
 
         // Locale
-        if (session('locale') == '') {
-            $locale = (user()->locale) ?? setting('default.locale');
+        if (! session('locale')) {
+            $locale = user()->locale ?? setting('default.locale');
 
             app()->setLocale($locale);
         }
 
+        // Set locale for Money package
+		Money::setLocale(app()->getLocale());
+
         // Set app url dynamically if empty
-        if (!config('app.url')) {
+        if (! config('app.url')) {
             config(['app.url' => url('/')]);
         }
     }

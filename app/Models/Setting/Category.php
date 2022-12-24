@@ -3,13 +3,25 @@
 namespace App\Models\Setting;
 
 use App\Abstracts\Model;
+use App\Builders\Category as Builder;
 use App\Models\Document\Document;
+use App\Relations\HasMany\Category as HasMany;
+use App\Scopes\Category as Scope;
+use App\Traits\Categories;
+use App\Traits\Tailwind;
 use App\Traits\Transactions;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 
 class Category extends Model
 {
-    use HasFactory, Transactions;
+    use Categories, HasFactory, Tailwind, Transactions;
+
+    public const INCOME_TYPE = 'income';
+    public const EXPENSE_TYPE = 'expense';
+    public const ITEM_TYPE = 'item';
+    public const OTHER_TYPE = 'other';
 
     protected $table = 'categories';
 
@@ -18,7 +30,7 @@ class Category extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'name', 'type', 'color', 'enabled', 'created_from', 'created_by'];
+    protected $fillable = ['company_id', 'name', 'type', 'color', 'enabled', 'created_from', 'created_by', 'parent_id'];
 
     /**
      * The attributes that should be cast.
@@ -36,6 +48,66 @@ class Category extends Model
      */
     public $sortable = ['name', 'type', 'enabled'];
 
+    /**
+     * The "booted" method of the model.
+     *
+     * @return void
+     */
+    protected static function booted()
+    {
+        static::addGlobalScope(new Scope);
+    }
+
+    /**
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query
+     * @return \App\Builders\Category
+     */
+    public function newEloquentBuilder($query)
+    {
+        return new Builder($query);
+    }
+
+    /**
+     * Instantiate a new HasMany relationship.
+     *
+     * @param  EloquentBuilder  $query
+     * @param  EloquentModel  $parent
+     * @param  string  $foreignKey
+     * @param  string  $localKey
+     * @return HasMany
+     */
+    protected function newHasMany(EloquentBuilder $query, EloquentModel $parent, $foreignKey, $localKey)
+    {
+        return new HasMany($query, $parent, $foreignKey, $localKey);
+    }
+
+    /**
+     * Retrieve the model for a bound value.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     * @return \Illuminate\Database\Eloquent\Model|null
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->resolveRouteBindingQuery($this, $value, $field)
+            ->withoutGlobalScope(Scope::class)
+            ->getWithoutChildren()
+            ->first();
+    }
+
+    public function categories()
+    {
+        return $this->hasMany(Category::class, 'parent_id')->withSubCategory();
+    }
+
+    public function sub_categories()
+    {
+        return $this->hasMany(Category::class, 'parent_id')->withSubCategory()->with('categories')->orderBy('name');
+    }
+
     public function documents()
     {
         return $this->hasMany('App\Models\Document\Document');
@@ -43,22 +115,22 @@ class Category extends Model
 
     public function bills()
     {
-        return $this->documents()->where('type', Document::BILL_TYPE);
+        return $this->documents()->where('documents.type', Document::BILL_TYPE);
     }
 
     public function expense_transactions()
     {
-        return $this->transactions()->whereIn('type', (array) $this->getExpenseTypes());
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getExpenseTypes());
     }
 
     public function income_transactions()
     {
-        return $this->transactions()->whereIn('type', (array) $this->getIncomeTypes());
+        return $this->transactions()->whereIn('transactions.type', (array) $this->getIncomeTypes());
     }
 
     public function invoices()
     {
-        return $this->documents()->where('type', Document::INVOICE_TYPE);
+        return $this->documents()->where('documents.type', Document::INVOICE_TYPE);
     }
 
     public function items()
@@ -137,14 +209,59 @@ class Category extends Model
     }
 
     /**
-     * Scope transfer category.
+     * Scope gets only parent categories.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function scopeTransfer($query)
+    public function scopeWithSubCategory($query)
     {
-        return (int) $query->other()->pluck('id')->first();
+        return $query->withoutGlobalScope(new Scope);
+    }
+
+    /**
+     * Get the hex code of the color.
+     */
+    public function getColorHexCodeAttribute(): string
+    {
+        return $this->getHexCodeOfTailwindClass($this->color);
+    }
+
+    /**
+     * Get the line actions.
+     *
+     * @return array
+     */
+    public function getLineActionsAttribute()
+    {
+        $actions = [];
+
+        $actions[] = [
+            'title' => trans('general.edit'),
+            'icon' => 'create',
+            'url' => route('categories.edit', $this->id),
+            'permission' => 'update-settings-categories',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-category-' . $this->id,
+            ],
+        ];
+
+        if ($this->isTransferCategory()) {
+            return $actions;
+        }
+
+        $actions[] = [
+            'type' => 'delete',
+            'icon' => 'delete',
+            'route' => 'categories.destroy',
+            'permission' => 'delete-settings-categories',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-category-' . $this->id,
+            ],
+            'model' => $this,
+        ];
+
+        return $actions;
     }
 
     /**

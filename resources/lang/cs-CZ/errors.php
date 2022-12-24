@@ -20,5 +20,4 @@ return [
         '500'       => 'Budeme neprodleně pracovat na nápravě.',
         'record'    => 'Nemohli jsme najít záznam, který hledáte.',
     ],
-
 ];

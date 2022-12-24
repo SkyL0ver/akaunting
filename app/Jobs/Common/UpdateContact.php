@@ -4,6 +4,7 @@ namespace App\Jobs\Common;
 
 use App\Abstracts\Job;
 use App\Interfaces\Job\ShouldUpdate;
+use App\Jobs\Auth\CreateUser;
 use App\Models\Auth\Role;
 use App\Models\Auth\User;
 use App\Models\Common\Contact;
@@ -27,6 +28,8 @@ class UpdateContact extends Job implements ShouldUpdate
                 $media = $this->getMedia($this->request->file('logo'), Str::plural($this->model->type));
 
                 $this->model->attachMedia($media, 'logo');
+            } elseif (! $this->request->file('logo') && $this->model->logo) {
+                $this->deleteMediaModel($this->model, 'logo', $this->request);
             }
 
             $this->model->update($this->request->all());
@@ -56,16 +59,17 @@ class UpdateContact extends Job implements ShouldUpdate
             throw new \Exception($message);
         }
 
-        $data = $this->request->all();
-        $data['locale'] = setting('default.locale', 'en-GB');
-
-        $customer_role = Role::all()->filter(function ($role) {
+        $customer_role_id = Role::all()->filter(function ($role) {
             return $role->hasPermission('read-client-portal');
-        })->first();
+        })->pluck('id')->first();
 
-        $user = User::create($data);
-        $user->roles()->attach($customer_role);
-        $user->companies()->attach($data['company_id']);
+        $this->request->merge([
+            'locale' => setting('default.locale', 'en-GB'),
+            'roles' => $customer_role_id,
+            'companies' => [$this->request->get('company_id')],
+        ]);
+
+        $user = $this->dispatch(new CreateUser($this->request));
 
         $this->request['user_id'] = $user->id;
     }

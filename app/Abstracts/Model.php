@@ -2,6 +2,7 @@
 
 namespace App\Abstracts;
 
+use Akaunting\Sortable\Traits\Sortable;
 use App\Events\Common\SearchStringApplied;
 use App\Events\Common\SearchStringApplying;
 use App\Traits\DateTime;
@@ -9,9 +10,9 @@ use App\Traits\Owners;
 use App\Traits\Sources;
 use App\Traits\Tenants;
 use GeneaLabs\LaravelModelCaching\Traits\Cachable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Kyslik\ColumnSortable\Sortable;
 use Laratrust\Contracts\Ownable;
 use Lorisleiva\LaravelSearchString\Concerns\SearchString;
 
@@ -30,30 +31,18 @@ abstract class Model extends Eloquent implements Ownable
     public $allAttributes = [];
 
     /**
-     * Create a new Eloquent model instance.
+     * Fill the model with an array of attributes.
      *
      * @param  array  $attributes
-     * @return void
+     * @return $this
+     *
+     * @throws \Illuminate\Database\Eloquent\MassAssignmentException
      */
-    public function __construct(array $attributes = [])
+    public function fill(array $attributes)
     {
         $this->allAttributes = $attributes;
 
-        parent::__construct($attributes);
-    }
-
-    /**
-     * Update the model in the database.
-     *
-     * @param  array  $attributes
-     * @param  array  $options
-     * @return bool
-     */
-    public function update(array $attributes = [], array $options = [])
-    {
-        $this->allAttributes = $attributes;
-
-        return parent::update($attributes, $options);
+        return parent::fill($attributes);
     }
 
     /**
@@ -113,22 +102,34 @@ abstract class Model extends Eloquent implements Ownable
     {
         $request = request();
 
+        /**
+         * Modules that use the sort parameter in CRUD operations cause an error,
+         * so this sort parameter set back to old value after the query is executed.
+         * 
+         * for Custom Fields module
+         */
+        $request_sort = $request->get('sort');
+
         $query->usingSearchString()->sortable($sort);
 
         if ($request->expectsJson() && $request->isNotApi()) {
             return $query->get();
         }
 
+        $request->merge(['sort' => $request_sort]);
+        $request->offsetUnset('direction');
         $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
 
         return $query->paginate($limit);
     }
 
-    public function scopeUsingSearchString($query)
+    public function scopeUsingSearchString(Builder $query, string|null $string = null)
     {
         event(new SearchStringApplying($query));
 
-        $this->getSearchStringManager()->updateBuilder($query, request('search'));
+        $string = $string ?: request('search');
+
+        $this->getSearchStringManager()->updateBuilder($query, $string);
 
         event(new SearchStringApplied($query));
     }
@@ -229,6 +230,16 @@ abstract class Model extends Eloquent implements Ownable
     public function scopeIsNotOwner($query)
     {
         return $query->where($this->qualifyColumn('created_by'), '<>', user_id());
+    }
+
+    public function scopeIsRecurring(Builder $query): Builder
+    {
+        return $query->where($this->qualifyColumn('type'), 'like', '%-recurring');
+    }
+
+    public function scopeIsNotRecurring(Builder $query): Builder
+    {
+        return $query->where($this->qualifyColumn('type'), 'not like', '%-recurring');
     }
 
     public function ownerKey($owner)

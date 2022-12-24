@@ -9,9 +9,10 @@
             formClasses
         ]"
         :footer-error="formError"
-        :prependIcon="icon"
+        :appendIcon="icon"
         :readonly="readonly"
         :disabled="disabled"
+        :not-required="notRequired"
         @focus="focus"
         >
         <flat-picker slot-scope="{focus, blur}"
@@ -19,7 +20,7 @@
             @on-open="focus"
             @on-close="blur"
             :config="dateConfig"
-            class="form-control datepicker"
+            class="datepicker w-full text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple"
             v-model="real_model"
             @input="change"
             :readonly="readonly"
@@ -62,6 +63,11 @@ export default {
             type: Boolean,
             default: false,
             description: "Input readonly status"
+        },
+
+        notRequired: {
+            type: Boolean,
+            default: false
         },
 
         period: {
@@ -135,6 +141,7 @@ export default {
         if (this.locale !== 'en') {
             try {
                 const lang = require(`flatpickr/dist/l10n/${this.locale}.js`).default[this.locale];
+
                 this.dateConfig.locale = lang;
             }
             catch (e) {
@@ -148,6 +155,7 @@ export default {
         if (this.model) {
             this.real_model = this.model;
         }
+
         this.$emit('interface', this.real_model);
     },
 

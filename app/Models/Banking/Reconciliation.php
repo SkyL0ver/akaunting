@@ -18,7 +18,7 @@ class Reconciliation extends Model
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'account_id', 'started_at', 'ended_at', 'closing_balance', 'reconciled', 'created_from', 'created_by'];
+    protected $fillable = ['company_id', 'account_id', 'started_at', 'ended_at', 'closing_balance', 'transactions', 'reconciled', 'created_from', 'created_by'];
 
     /**
      * The attributes that should be cast.
@@ -28,6 +28,7 @@ class Reconciliation extends Model
     protected $casts = [
         'closing_balance' => 'double',
         'reconciled' => 'boolean',
+        'transactions' => 'array',
     ];
 
     /**
@@ -40,6 +41,39 @@ class Reconciliation extends Model
     public function account()
     {
         return $this->belongsTo('App\Models\Banking\Account');
+    }
+
+    /**
+     * Get the line actions.
+     *
+     * @return array
+     */
+    public function getLineActionsAttribute()
+    {
+        $actions = [];
+
+        $actions[] = [
+            'title' => trans('general.edit'),
+            'icon' => 'edit',
+            'url' => route('reconciliations.edit', $this->id),
+            'permission' => 'update-banking-reconciliations',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-reconciliation-' . $this->id,
+            ],
+        ];
+
+        $actions[] = [
+            'type' => 'delete',
+            'icon' => 'delete',
+            'route' => 'reconciliations.destroy',
+            'permission' => 'delete-banking-reconciliations',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-reconciliation-' . $this->id,
+            ],
+            'model' => $this,
+        ];
+
+        return $actions;
     }
 
     /**

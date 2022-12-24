@@ -1,11 +1,7 @@
-<div class="position-relative js-search-box-hidden" style="height: 48.5px;">
-    <div class="border-bottom-0 w-100 position-absolute left-0 right-0" style="z-index: 9;">
-        <input type="text" placeholder="Search or filter results..." class="form-control" />
-    </div>
-</div>
-
 <akaunting-search
     placeholder="{{ (!empty($filters)) ? trans('general.placeholder.search_and_filter') : trans('general.search_placeholder')}}"
+    select-placeholder="{{ trans('general.placeholder.select_and_filter') }}"
+    enter-placeholder="{{ trans('general.placeholder.enter_and_filter') }}"
     search-text="{{ trans('general.search_text') }}"
     operator-is-text="{{ trans('general.is') }}"
     operator-is-not-text="{{ trans('general.isnot') }}" 

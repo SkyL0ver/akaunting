@@ -3,13 +3,14 @@
 namespace App\Jobs\Auth;
 
 use App\Abstracts\Job;
+use App\Events\Auth\UserCreated;
+use App\Events\Auth\UserCreating;
 use App\Interfaces\Job\HasOwner;
 use App\Interfaces\Job\HasSource;
 use App\Interfaces\Job\ShouldCreate;
-use App\Events\Auth\UserCreated;
-use App\Events\Auth\UserCreating;
 use App\Models\Auth\User;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
 
 class CreateUser extends Job implements HasOwner, HasSource, ShouldCreate
 {
@@ -18,6 +19,10 @@ class CreateUser extends Job implements HasOwner, HasSource, ShouldCreate
         event(new UserCreating($this->request));
 
         \DB::transaction(function () {
+            if (empty($this->request->get('password', false))) {
+                $this->request->merge(['password' => Str::random(40)]);
+            }
+
             $this->model = User::create($this->request->input());
 
             // Upload picture
@@ -65,10 +70,31 @@ class CreateUser extends Job implements HasOwner, HasSource, ShouldCreate
                     'company' => $company->id,
                 ]);
             }
+
+            if ($this->shouldSendInvitation()) {
+                $this->dispatch(new CreateInvitation($this->model));
+            }
         });
 
         event(new UserCreated($this->model, $this->request));
 
         return $this->model;
+    }
+
+    protected function shouldSendInvitation()
+    {
+        if (app()->runningUnitTests()) {
+            return true;
+        }
+
+        if (app()->runningInConsole()) {
+            return false;
+        }
+
+        if (request()->isInstall()) {
+            return false;
+        }
+
+        return true;
     }
 }

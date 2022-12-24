@@ -1,35 +1,56 @@
-{!! Form::open([
-    'id' => 'form-transaction',
-    '@submit.prevent' => 'onSubmit',
-    '@keydown' => 'form.errors.clear($event.target.name)',
-    'role' => 'form',
-    'class' => 'form-loading-button',
-    'route' => ['modals.documents.document.transactions.store', $document->id],
-    'novalidate' => true
-]) !!}
-    <base-alert type="warning" v-if="typeof form.response !== 'undefined' && form.response.error" v-html="form.response.message"></base-alert>
-
-    <div class="row">
-        {{ Form::dateGroup('paid_at', trans('general.date'), 'calendar', ['id' => 'paid_at', 'required' => 'required', 'show-date-format' => company_date_format(), 'date-format' => 'Y-m-d', 'autocomplete' => 'off'], Date::now()->toDateString()) }}
-
-        {{ Form::moneyGroup('amount', trans('general.amount'), 'money-bill-alt', ['required' => 'required', 'autofocus' => 'autofocus', 'currency' => $currency, 'dynamic-currency' => 'currency'], $document->grand_total) }}
-
-        {{ Form::selectGroup('account_id', trans_choice('general.accounts', 1), 'university', $accounts, setting('default.account'), ['required' => 'required', 'change' => 'onChangePaymentAccount']) }}
-
-        {{ Form::textGroup('currency', trans_choice('general.currencies', 1), 'exchange-alt', ['disabled' => 'true'], $currencies[$document->currency_code]) }}
-
-        {{ Form::textareaGroup('description', trans('general.description'), '', null, ['rows' => '3']) }}
-
-        {{ Form::selectGroup('payment_method', trans_choice('general.payment_methods', 1), 'credit-card', $payment_methods, setting('default.payment_method'), ['required' => 'requied']) }}
-
-        {{ Form::textGroup('reference', trans('general.reference'), 'fa fa-file', []) }}
-
-        {!! Form::hidden('document_id', $document->id, ['id' => 'document_id', 'class' => 'form-control', 'required' => 'required']) !!}
-        {!! Form::hidden('category_id', $document->category->id, ['id' => 'category_id', 'class' => 'form-control', 'required' => 'required']) !!}
-        {!! Form::hidden('amount', $document->grand_total, ['id' => 'amount', 'class' => 'form-control', 'required' => 'required']) !!}
-        {!! Form::hidden('currency_code', $document->currency_code, ['id' => 'currency_code', 'class' => 'form-control', 'required' => 'required']) !!}
-        {!! Form::hidden('currency_rate', $document->currency_rate, ['id' => 'currency_rate', 'class' => 'form-control', 'required' => 'required']) !!}
-
-        {!! Form::hidden('type', config('type.' . $document->type . '.transaction_type')) !!}
+<x-form id="form-transaction" :method="$method" :route="$route" :model="!empty($transaction) ? $transaction : false">
+    <div class="rounded-xl px-5 py-3 mb-5 bg-red-100" v-if="typeof form.response !== 'undefined' && form.response.error">
+        <p class="text-sm mb-0 text-red-600" v-html="form.response.message"></p>
     </div>
-{!! Form::close() !!}
+
+    <x-tabs active="general" class="grid grid-cols-2" override="class">
+        <x-slot name="navs">
+            <x-tabs.nav id="general">
+                {{ trans('general.general') }}
+
+                <span class="invalid-feedback block text-xs text-red whitespace-normal" v-if="form.errors.has('paid_at')||form.errors.has('amount')||form.errors.has('payment_method')||form.errors.has('account_id')">
+                    {{ trans('general.validation_error') }}
+                </span>
+            </x-tabs.nav>
+
+            <x-tabs.nav id="other">
+                {{ trans_choice('general.others', 1) }}
+
+                <span class="invalid-feedback block text-xs text-red whitespace-normal" v-if="form.errors.has('number')||form.errors.has('description')||form.errors.has('recurring')">
+                    {{ trans('general.validation_error') }}
+                </span>
+            </x-tabs.nav>
+        </x-slot>
+
+        <x-slot name="content">
+            <x-tabs.tab id="general">
+                <div class="grid sm:grid-cols-6 gap-x-8 gap-y-6 my-3.5">
+                    <x-form.group.date name="paid_at" label="{{ trans('general.date') }}" icon="calendar_today" value="{{ $document->paid_at }}" show-date-format="{{ company_date_format() }}" date-format="Y-m-d" autocomplete="off" form-group-class="col-span-6" />
+
+                    <x-form.group.money name="amount" label="{{ trans('general.amount') }}" value="{{ $document->grand_total }}" autofocus="autofocus" :currency="$currency" dynamicCurrency="currency" form-group-class="col-span-6" />
+
+                    <x-form.group.payment-method form-group-class="col-span-6"/>
+
+                    <x-form.group.account change="onChangePaymentAccount" form-group-class="col-span-6" without-add-new />
+                </div>
+            </x-tabs.tab>
+
+            <x-tabs.tab id="other">
+                <div class="grid sm:grid-cols-6 gap-x-8 gap-y-6 my-3.5">
+                    <x-form.group.textarea name="description" label="{{ trans('general.description') }}" rows="2" not-required form-group-class="col-span-6" />
+
+                    <x-form.group.text name="number" label="{{ trans_choice('general.numbers', 1) }}" value="{{ $number }}" form-group-class="col-span-6" />
+
+                    <x-form.group.text name="reference" label="{{ trans('general.reference') }}" not-required form-group-class="col-span-6" />
+
+                    <x-form.input.hidden name="document_id" :value="$document->id" />
+                    <x-form.input.hidden name="category_id" :value="$document->category->id" />
+                    <x-form.input.hidden name="amount" :value="$document->grand_total" />
+                    <x-form.input.hidden name="currency_code" :value="$document->currency_code" />
+                    <x-form.input.hidden name="currency_rate" :value="$document->currency_rate" />
+                    <x-form.input.hidden name="type" :value="config('type.document.' . $document->type . '.transaction_type')" />
+                </div>
+            </x-tabs.tab>
+        </x-slot>
+    </x-tabs>
+</x-form>

@@ -45,7 +45,7 @@ class Tax extends Model
 
     public function items()
     {
-        return $this->hasMany('App\Models\Common\Item');
+        return $this->hasMany('App\Models\Common\ItemTax');
     }
 
     public function document_items()
@@ -55,12 +55,12 @@ class Tax extends Model
 
     public function bill_items()
     {
-        return $this->document_items()->where('type', Document::BILL_TYPE);
+        return $this->document_items()->where('document_item_taxes.type', Document::BILL_TYPE);
     }
 
     public function invoice_items()
     {
-        return $this->document_items()->where('type', Document::INVOICE_TYPE);
+        return $this->document_items()->where('document_item_taxes.type', Document::INVOICE_TYPE);
     }
 
     public function scopeName($query, $name)
@@ -134,6 +134,39 @@ class Tax extends Model
         $title .= ')';
 
         return $title;
+    }
+
+    /**
+     * Get the line actions.
+     *
+     * @return array
+     */
+    public function getLineActionsAttribute()
+    {
+        $actions = [];
+
+        $actions[] = [
+            'title' => trans('general.edit'),
+            'icon' => 'edit',
+            'url' => route('taxes.edit', $this->id),
+            'permission' => 'update-settings-taxes',
+            'attributes' => [
+                'id' => 'index-line-actions-edit-tax-' . $this->id,
+            ],
+        ];
+
+        $actions[] = [
+            'type' => 'delete',
+            'icon' => 'delete',
+            'route' => 'taxes.destroy',
+            'permission' => 'delete-settings-taxes',
+            'attributes' => [
+                'id' => 'index-line-actions-delete-tax-' . $this->id,
+            ],
+            'model' => $this,
+        ];
+
+        return $actions;
     }
 
     /**
