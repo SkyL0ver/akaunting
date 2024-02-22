@@ -28,11 +28,12 @@ return [
     'yearly_pricing'        => 'Gada cenas noteikšana',
     'monthly_price'         => 'no :price',
     'per_month'             => 'mēnesī',
-    'billed_yearly'         => 'Izrakstīts par gadu',
+    'once'                  => 'vienreiz',
     'billed_monthly'        => 'Izrakstīts par mēnesi',
+    'billed_yearly'         => 'Izrakstīts par gadu',
+    'billed_once'           => 'Rēķins vienu reizi',
     'save_year'             => 'Jūs ietaupāt <strong>:price</strong> par gadu!',
     'if_paid_year'          => 'Vai <strong>:price/mo</strong> apmaksai par gadu',
-    'information_monthly'   => 'Šī opcija ir derīga tikai pakalpojumam <strong>mākoņpakalpojums</strong>',
     'install'               => 'Instalēt',
     'buy_now'               => 'Pirkt tagad',
     'get_api_key'           => '<a href=":url" target="_blank">Noklikšķiniet šeit</a> lai iegūtu API atslēgu.',
@@ -48,6 +49,8 @@ return [
     'get_premium_cloud'     => 'Iegūstiet Premium Cloud',
     'switch_to_cloud'       => 'Pārslēgties uz mākoni',
     'hosted_on_akaunting'   => 'Izmitināts uz akaunting.com',
+    'information_on_preme'  => ':period opcija ir pieejama tikai vietnē <a href=":url" target="_blank" class="to-black-400 hover:bg-full-2 bg-no-repeat bg-0-2 bg-0-full bg-gradient-to-b from-transparent transfer-backgroundSize"><strong>Mākonis.</strong></a>',
+    'information_monthly'   => 'Šī opcija ir derīga tikai pakalpojumam <strong>mākoņpakalpojums</strong>',
     'only_works_cloud'      => 'Šī lietotne darbojas tikai pakalpojumā <strong>Cloud Service</strong>.',
     'only_premium_plan'     => 'Šī lietotne darbojas tikai pakalpojumā <strong>Cloud Premium Service</strong>.',
     'not_found'             => 'Nav atrasta lietotne',
@@ -100,6 +103,10 @@ return [
         'unzip'             => 'Nevar unzip :modulis',
         'file_copy'         => 'Nevar nokopēt :modulis failus',
         'finish'            => 'Nevar pabeigt :modulis uzstādīšanu',
+    ],
+
+    'warning' => [
+        'latest_version'    => 'Jūs izmantojat jaunāko :module versiju, atjauninājumi nav pieejami.',
     ],
 
     'badge' => [

@@ -16,7 +16,7 @@ class Dropzone
      */
     public function handle($request, Closure $next)
     {
-        if (! in_array($request->method(), ['POST', 'PATCH'])) {
+        if (! in_array($request->method(), ['POST', 'PATCH', 'PUT'])) {
             return $next($request);
         }
 
@@ -36,7 +36,7 @@ class Dropzone
 
             foreach ($value as $index => $parameter) {
                 // single file uploaded..
-                if (! is_array($parameter) && !$multiple) {
+                if (! is_array($parameter) && ! $multiple) {
                     if (! Arr::has($value, 'dropzone')) {
                         continue;
                     }

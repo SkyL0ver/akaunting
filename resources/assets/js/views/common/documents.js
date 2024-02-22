@@ -14,6 +14,8 @@ import Global from './../../mixins/global';
 
 import Form from './../../plugins/form';
 import BulkAction from './../../plugins/bulk-action';
+import Money from './../../plugins/money';
+import draggable from 'vuedraggable';
 
 // plugin setup
 Vue.use(DashboardPlugin);
@@ -24,6 +26,10 @@ const app = new Vue({
     mixins: [
         Global
     ],
+
+    components: {
+        draggable
+    },
 
     data: function () {
         return {
@@ -94,15 +100,17 @@ const app = new Vue({
         this.currency_symbol.rate = this.form.currency_rate;
 
         if (company_currency_code) {
-           let default_currency_symbol = null;
+            let default_currency_symbol = null;
+            let default_currency = this.currency_symbol;
 
-           for (let symbol of this.currencies) {
-               if (symbol.code == company_currency_code) {
-                   default_currency_symbol = symbol.symbol;
-               }
-           }
+            for (let currency of this.currencies) {
+                if (currency.code == company_currency_code) {
+                    default_currency = currency;
+                    default_currency_symbol = currency.symbol;
+                }
+            }
 
-           this.currency_symbol.symbol = default_currency_symbol;
+            this.currency_symbol = default_currency;
         };
 
         if (document_app_env == 'production') {
@@ -111,12 +119,193 @@ const app = new Vue({
     },
 
     methods: {
+        onChangeCurrencyPaymentAccount(currency_code) {
+            let code = currency_code;
+            let rate = this.form.currency_rate;
+            let precision = this.currency.precision;
+
+            let amount = parseFloat(this.form.amount).toFixed(precision);
+            let paid_amount = parseFloat(this.form.paid_amount).toFixed(precision);
+            let total_amount = parseFloat(this.form.document_default_amount).toFixed(precision);
+            let error_amount = 0;
+
+            if (this.form.document_currency_code != code) {
+                let converted_amount = this.convertBetween(amount, code, rate, this.form.document_currency_code, this.form.document_currency_rate);
+
+                amount = parseFloat(converted_amount).toFixed(precision);
+
+                // for default rate 1 and change currency rate 30
+                if (parseFloat(amount) > parseFloat(total_amount) || (rate >= 1)) {
+                    error_amount = total_amount;
+
+                    if (this.form.document_currency_code != code) {
+                        let converted_amount = this.convertBetween(total_amount, this.form.document_currency_code, this.form.document_currency_rate, code, rate);
+
+                        error_amount = parseFloat(converted_amount).toFixed(precision);
+                    }
+                }
+            }
+
+            this.form.pay_in_full = true;
+            let form_amount = (error_amount) ? error_amount : amount;
+            this.form.amount = parseFloat(form_amount).toFixed(precision);
+            this.form.default_amount = parseFloat(this.form.document_default_amount).toFixed(precision);
+        },
+
+        onChangeAmount(amount) {
+            if (this.form == undefined) {
+                return;
+            }
+
+            if (this.form.document_currency_code == this.form.currency_code) {
+                return;
+            }
+
+            let code = this.form.currency_code;
+            let rate = this.form.currency_rate;
+            let precision = this.currency.precision;
+
+            let paid_amount = parseFloat(this.form.paid_amount).toFixed(precision);
+            let total_amount = parseFloat(this.form.document_default_amount).toFixed(precision);
+            let error_amount = 0;
+
+            if (this.form.document_currency_code != code) {
+                let converted_amount = this.convertBetween(amount, code, rate, this.form.document_currency_code, this.form.document_currency_rate);
+
+                amount = parseFloat(converted_amount).toFixed(precision);
+
+                if (parseFloat(amount) > parseFloat(total_amount)) {
+                    error_amount = total_amount;
+
+                    if (this.form.document_currency_code != code) {
+                        let converted_amount = this.convertBetween(total_amount, this.form.document_currency_code, this.form.document_currency_rate, code, rate);
+
+                        error_amount = parseFloat(converted_amount).toFixed(precision);
+                    }
+                }
+
+                this.form.default_amount = amount;
+            }
+        },
+
+        onChangeRatePayment(event) {
+            debugger;
+
+            this.$forceUpdate();
+
+            this.form.currency_rate = event.target.value;
+
+            this.onChangeAmount(this.form.amount);
+        },
+
+        onChangePayInFull(event) {
+            this.$forceUpdate();
+
+            if (! event) {
+                return;
+            }
+
+            let document_rate = parseFloat(this.form.document_currency_rate) / parseFloat(this.form.document_default_amount);
+
+            let rate = parseFloat(document_rate * this.form.amount).toFixed(4);
+
+            this.form.currency_rate = parseFloat(rate);
+
+            this.onChangeAmount(this.form.amount);
+        },
+
+        checkAmount() {
+            let code = this.form.currency_code;
+            let rate = this.form.currency_rate;
+            let precision = this.currency.precision;
+            let amount = parseFloat(this.form.amount).toFixed(precision);
+            let paid_amount = parseFloat(this.form.paid_amount).toFixed(precision);
+            let total_amount = parseFloat(this.form.document_default_amount).toFixed(precision); 
+            let error_amount = 0;
+
+            if (this.form.document_currency_code != code) {
+                let converted_amount = this.convertBetween(amount, code, rate, this.form.document_currency_code, this.form.document_currency_rate);
+
+                amount = parseFloat(converted_amount).toFixed(precision);
+            }
+
+            if (parseFloat(amount) > parseFloat(total_amount)) {
+                error_amount = total_amount;
+
+                if (this.form.document_currency_code != code) {
+                    let converted_amount = this.convertBetween(total_amount, this.form.document_currency_code, this.form.document_currency_rate, code, rate);
+
+                    error_amount = parseFloat(converted_amount).toFixed(precision);
+                }
+            }
+
+            return (error_amount) ? error_amount : false; 
+        },
+
+        // format default = false 
+        convert(method, amount, from, to, rate, format) {
+            let money = new Money(to, amount, format);
+
+            // No need to convert same currency
+            if (from == to) {
+                return format ? money.format() : money.getAmount();
+            }
+
+            try {
+                money = money[method](parseFloat(rate));
+            } catch ( $e) {
+                console.log($e);
+
+                return 0;
+            }
+
+            return format ? money.format() : money.getAmount();
+        },
+
+        // format default = false default = null
+        convertToDefault(amount, from, rate, format, ddefault) {
+            let default_currency = (ddefault) ? ddefault : this.form.company_currency_code;
+
+            return this.convert('divide', amount, from, default_currency, rate, format);
+        },
+
+        // format default = false default = null
+        convertFromDefault(amount, to, rate, format, ddefault) {
+            let default_currency = (ddefault) ? ddefault : this.form.company_currency_code;
+
+            return this.convert('multiply', amount, default_currency, to, rate, format);
+        },
+
+        convertBetween(amount, from_code, from_rate, to_code, to_rate) {
+            let default_amount = amount;
+
+            if (from_code != this.form.company_currency_code) {
+                default_amount = this.convertToDefault(amount, from_code, from_rate, false, null);
+            }
+
+            let converted_amount = this.convertFromDefault(default_amount, to_code, to_rate, false, from_code);
+
+            return converted_amount;
+        },
+
+        onItemSortUpdate(event) {
+            let item_index = this.form.items.indexOf(this.form.items[event.oldIndex]);
+            let item = this.form.items.splice(item_index, 1)[0];
+
+            this.form.items.splice(event.newIndex, 0, item);
+        },
+
         onRefFocus(ref) {
             let index = this.form.items.length - 1;
-            
+
             if (typeof (this.$refs['items-' + index + '-' + ref]) !== 'undefined') {
                 let first_ref = this.$refs['items-' + index + '-'  + ref];
-                first_ref != undefined ? first_ref[0].focus() : this.$refs[Object.keys(this.$refs)[0]][0].focus();
+
+                if (first_ref != undefined) {
+                    first_ref[0].focus();
+                } else if (this.$refs[Object.keys(this.$refs)[0]] != undefined) {
+                    this.$refs[Object.keys(this.$refs)[0]][0].focus();
+                }
             }
         },
 
@@ -469,26 +658,28 @@ const app = new Vue({
             }
 
             let selected_tax;
-            
+
             this.dynamic_taxes.forEach(function(tax) {
                 if (tax.id == this.tax_id) {
                     selected_tax = tax;
                 }
             }, this);
-        
-            this.items[item_index].tax_ids.push({
-                id: selected_tax.id,
-                name: selected_tax.title,
-                price: 0
-            });
 
-            this.form.items[item_index].tax_ids.push(this.tax_id);
+            if (selected_tax) {
+                this.items[item_index].tax_ids.push({
+                    id: selected_tax.id,
+                    name: selected_tax.title,
+                    price: 0
+                });
 
-            if (this.taxes.includes(this.tax_id)) {
-                this.taxes[this.tax_id].push(this.items[item_index].item_id);
-            } else {
-                this.taxes[this.tax_id] = [];
-                this.taxes[this.tax_id].push(this.items[item_index].item_id);
+                this.form.items[item_index].tax_ids.push(this.tax_id);
+
+                if (this.taxes.includes(this.tax_id)) {
+                    this.taxes[this.tax_id].push(this.items[item_index].item_id);
+                } else {
+                    this.taxes[this.tax_id] = [];
+                    this.taxes[this.tax_id].push(this.items[item_index].item_id);
+                }
             }
 
             this.tax_id = '';
@@ -602,6 +793,7 @@ const app = new Vue({
         onChangeCurrency(currency_code) {
             if (this.edit.status && this.edit.currency <= 2) {
                 this.edit.currency++;
+
                 return;
             }
 
@@ -658,7 +850,7 @@ const app = new Vue({
 
         onFormCapture() {
            let form_html = document.querySelector('form');
-           
+
            if (form_html && form_html.getAttribute('id') == 'document') {
                form_html.querySelectorAll('input, textarea, select, ul, li, a').forEach((element) => {
                   element.addEventListener('click', () => {
@@ -682,7 +874,7 @@ const app = new Vue({
 
         onChangeRecurringDate() {
             let started_at = new Date(this.form.recurring_started_at);
-            let due_at = format(addDays(started_at, this.form.payment_terms), 'YYYY-MM-DD');
+            let due_at = format(addDays(started_at, this.form.payment_terms), 'yyyy-MM-dd');
 
             this.form.due_at = due_at;
         },
@@ -709,11 +901,11 @@ const app = new Vue({
                     name: item.name,
                     description: item.description === null ? "" : item.description,
                     quantity: item.quantity,
-                    price: (item.price).toFixed(2),
+                    price: (item.price).toFixed(this.currency.precision ?? 2),
                     tax_ids: item.tax_ids,
                     discount: item.discount_rate,
                     discount_type: item.discount_type,
-                    total: (item.total).toFixed(2)
+                    total: (item.total).toFixed(this.currency.precision ?? 2)
                 });
 
                 if (item.tax_ids) {
@@ -736,7 +928,7 @@ const app = new Vue({
                     item_taxes.push({
                         id: item_tax.tax_id,
                         name: item_tax.name,
-                        price: (item_tax.amount).toFixed(2),
+                        price: (item_tax.amount).toFixed(this.currency.precision ?? 2),
                     });
                 });
 
@@ -745,13 +937,13 @@ const app = new Vue({
                     name: item.name,
                     description: item.description === null ? "" : item.description,
                     quantity: item.quantity,
-                    price: (item.price).toFixed(2),
+                    price: (item.price).toFixed(this.currency.precision ?? 2),
                     add_tax: false,
                     tax_ids: item_taxes,
                     add_discount: (item.discount_rate) ? true : false,
                     discount: item.discount_rate,
                     discount_type: item.discount_type,
-                    total: (item.total).toFixed(2),
+                    total: (item.total).toFixed(this.currency.precision ?? 2),
                     // @todo
                     // invoice_item_checkbox_sample: [],
                 });
@@ -809,6 +1001,22 @@ const app = new Vue({
             this.onSendEmail(email_route);
         }
 
+        if (getQueryVariable('sendtransaction')) {
+            // clear query string
+            let uri = window.location.toString();
+
+            if (uri.indexOf("?") > 0) {
+                let clean_uri = uri.substring(0, uri.indexOf("?"));
+
+                window.history.replaceState({}, document.title, clean_uri);
+            }
+
+            let email_route = document.getElementById('sendtransaction_route').value;
+            let email_template = document.getElementById('sendtransaction_template').value;
+
+            this.onEmailViaTemplate(email_route, email_template);
+        }
+
         this.page_loaded = true;
     },
 
@@ -820,9 +1028,9 @@ const app = new Vue({
 
             if (newVal != '' && newVal.search('^(?=.*?[0-9])[0-9.,]+$') !== 0) {
                 this.form.discount = oldVal;
-                
+
                 if (Number(newVal) == null) {
-                    this.form.discount.replace(',', '.'); 
+                    this.form.discount.replace(',', '.');
                 }
 
                 return;

@@ -63,6 +63,17 @@ return [
 
     ],
 
+    'email' => [
+
+        'invalid' => [
+
+            'title'         => 'Invalid :type Email',
+            'description'   => 'The :email email address has been reported as invalid, and the person has been disabled. Please check the following error message and fix the email address:',
+
+        ],
+
+    ],
+
     'menu' => [
 
         'export_completed' => [
@@ -88,7 +99,7 @@ return [
 
         'import_failed' => [
 
-            'subject'       => 'Import failed',
+            'title'         => 'Import failed',
             'description'   => 'Not able to import the file due to several issues. Check out your email for the details.',
 
         ],
@@ -177,6 +188,13 @@ return [
 
         ],
 
+        'invalid_email' => [
+
+            'title'         => 'Invalid :type Email',
+            'description'   => 'The <strong>:email</strong> email address has been reported as invalid, and the person has been disabled. Please check and fix the email address.',
+
+        ],
+
     ],
 
     'messages' => [
@@ -185,4 +203,16 @@ return [
         'mark_read_all'         => ':type is read all notifications!',
 
     ],
+
+    'browser' => [
+
+        'firefox' => [
+
+            'title' => 'Firefox Icon Configuration',
+            'description'  => '<span class="font-medium">If your icons not appear please;</span> <br /> <span class="font-medium">Please Allow pages to choose their own fonts, instead of your selections above</span> <br /><br /> <span class="font-bold"> Settings (Preferences) > Fonts > Advanced </span>',
+
+        ],
+
+    ],
+
 ];

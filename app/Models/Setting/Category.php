@@ -25,21 +25,14 @@ class Category extends Model
 
     protected $table = 'categories';
 
+    protected $appends = ['display_name'];
+
     /**
      * Attributes that should be mass-assignable.
      *
      * @var array
      */
     protected $fillable = ['company_id', 'name', 'type', 'color', 'enabled', 'created_from', 'created_by', 'parent_id'];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
-    protected $casts = [
-        'enabled' => 'boolean',
-    ];
 
     /**
      * Sortable columns.
@@ -220,11 +213,52 @@ class Category extends Model
     }
 
     /**
+     * Scope to export the rows of the current page filtered and sorted.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param $ids
+     * @param $sort
+     * @param $id_field
+     *
+     * @return \Illuminate\Support\LazyCollection
+     */
+    public function scopeCollectForExport($query, $ids = [], $sort = 'name', $id_field = 'id')
+    {
+        $request = request();
+
+        if (!empty($ids)) {
+            $query->whereIn($id_field, (array) $ids);
+        }
+
+        $search = $request->get('search');
+
+        $query->withSubcategory();
+
+        $query->usingSearchString($search)->sortable($sort);
+
+        $page = (int) $request->get('page');
+        $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
+        $offset = $page ? ($page - 1) * $limit : 0;
+
+        $query->offset($offset)->limit($limit);
+
+        return $query->cursor();
+    }
+
+    /**
      * Get the hex code of the color.
      */
     public function getColorHexCodeAttribute(): string
     {
         return $this->getHexCodeOfTailwindClass($this->color);
+    }
+
+    /**
+     * Get the display name of the category.
+     */
+    public function getDisplayNameAttribute()
+    {
+        return $this->name . ' (' . ucfirst($this->type) . ')';
     }
 
     /**

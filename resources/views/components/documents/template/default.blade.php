@@ -17,9 +17,9 @@
                 @stack('company_logo_input_start')
                 @if (! $hideCompanyLogo)
                     @if (! empty($document->contact->logo) && ! empty($document->contact->logo->id))
-                        <img class="d-logo w-image" src="{{ $logo }}" alt="{{ $document->contact_name }}"/>
+                        <img class="d-logo" src="{{ $logo }}" alt="{{ $document->contact_name }}"/>
                     @else
-                        <img class="d-logo w-image" src="{{ $logo }}" alt="{{ setting('company.name') }}"/>
+                        <img class="d-logo" src="{{ $logo }}" alt="{{ setting('company.name') }}"/>
                     @endif
                 @endif
                 @stack('company_logo_input_end')
@@ -48,13 +48,13 @@
                     @endif
 
                     @if (! $hideCompanyTaxNumber)
-                        
+
                         @if (setting('company.tax_number'))
                             <p>
                                 {{ trans('general.tax_number') }}: {{ setting('company.tax_number') }}
                             </p>
                         @endif
-                        
+
                     @endif
 
                     @if (! $hideCompanyPhone)
@@ -76,14 +76,29 @@
 
     <div class="row top-spacing">
         <div class="col-60">
-            <div class="text p-index-left">
+            <div class="text p-index-left break-words">
                 @if (! $hideContactInfo)
-                    <p class="font-semibold mb-0">{{ trans($textContactInfo) }}</p>
+                    <p class="font-semibold mb-0">
+                        {{ trans($textContactInfo) }}
+                    </p>
                 @endif
 
                 @stack('name_input_start')
                     @if (! $hideContactName)
-                        <p>{{ $document->contact_name }}</p>
+                        @if ($print)
+                            <p>
+                                {{ $document->contact_name }}
+                            </p>
+                        @else
+                            <x-link href="{{ route($showContactRoute, $document->contact_id) }}"
+                                override="class"
+                                class="py-1.5 mb-3 sm:mb-0 text-xs bg-transparent hover:bg-transparent font-medium leading-6"
+                            >
+                                <x-link.hover>
+                                    {{ $document->contact_name }}
+                                </x-link.hover>
+                            </x-link>
+                        @endif
                     @endif
                 @stack('name_input_end')
 
@@ -101,7 +116,7 @@
                     @if (! $hideContactTaxNumber)
                         @if ($document->contact_tax_number)
                             <p>
-                                <span class="text-medium text-default">
+                                <span class="font-semibold">
                                     {{ trans('general.tax_number') }}:
                                 </span>
                                 {{ $document->contact_tax_number }}
@@ -285,8 +300,8 @@
     @endif
 
     <div class="row mt-9 clearfix">
-        <div class="col-60">
-            <div class="text p-index-left">
+        <div class="col-60 float-left">
+            <div class="text p-index-left break-words">
                 @stack('notes_input_start')
                     @if ($document->notes)
                         <p class="font-semibold">
@@ -309,7 +324,7 @@
                         </span>
 
                         <span>
-                            <x-money :amount="$total->amount" :currency="$document->currency_code" convert />
+                            <x-money :amount="$total->amount" :currency="$document->currency_code" />
                         </span>
                     </div>
                     @stack($total->code . '_total_tr_end')
@@ -322,7 +337,7 @@
                             </span>
 
                             <span>
-                                - <x-money :amount="$document->paid" :currency="$document->currency_code" convert />
+                                - <x-money :amount="$document->paid" :currency="$document->currency_code" />
                             </span>
                         </div>
                         @stack('paid_total_tr_end')
@@ -335,7 +350,7 @@
                         </span>
 
                         <span>
-                            <x-money :amount="$document->amount_due" :currency="$document->currency_code" convert />
+                            <x-money :amount="$document->amount_due" :currency="$document->currency_code" />
                         </span>
                     </div>
                     @stack('grand_total_tr_end')

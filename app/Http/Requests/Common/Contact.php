@@ -26,7 +26,7 @@ class Contact extends FormRequest
         $company_id = (int) $this->request->get('company_id');
 
         // Check if store or update
-        if ($this->getMethod() == 'PATCH') {
+        if (in_array($this->getMethod(), ['PATCH', 'PUT'])) {
             $model = $this->isApi() ? 'contact' : $type;
 
             $id = is_numeric($this->$model) ? $this->$model : $this->$model->getAttribute('id');
@@ -52,7 +52,7 @@ class Contact extends FormRequest
                     . '|dimensions:max_width=' . config('filesystems.max_width') . ',max_height=' . config('filesystems.max_height');
         }
 
-        return [
+        $rules = [
             'type'          => 'required|string',
             'name'          => 'required|string',
             'email'         => $email,
@@ -61,6 +61,16 @@ class Contact extends FormRequest
             'enabled'       => 'integer|boolean',
             'logo'          => $logo,
         ];
+
+        if ($this->request->has('contact_persons')) {
+            $rules = array_merge($rules, [
+                'contact_persons.*.name'    => 'nullable|string',
+                'contact_persons.*.email'   => 'nullable|email:rfc,dns',
+                'contact_persons.*.phone'   => 'nullable|string',
+            ]);
+        }
+
+        return $rules;
     }
 
     public function messages()
@@ -73,6 +83,7 @@ class Contact extends FormRequest
 
         return [
             'logo.dimensions' => $logo_dimensions,
+            'contact_persons.*.email.email' => trans('validation.email', ['attribute' => Str::lower(trans('general.email'))])
         ];
     }
 }

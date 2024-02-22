@@ -54,7 +54,7 @@
                     <x-slot name="body">
                         <x-form.group.category type="{{ $real_type }}" :selected="setting('default.' . $real_type . '_category')" />
 
-                        <x-form.group.contact type="{{ config('type.transaction.' . $real_type . '.contact_type') }}" not-required />
+                        <x-form.group.contact :type="$contact_type" not-required />
                     </x-slot>
                 </x-form.section>
 
@@ -105,6 +105,16 @@
             </x-form>
         </x-form.container>
     </x-slot>
+
+    @push('scripts_start')
+        <script type="text/javascript">
+            if (typeof aka_currency !== 'undefined') {
+                aka_currency = {!! json_encode(! empty($currency) ? $currency : config('money.currencies.' . company()->currency)) !!};
+            } else {
+                var aka_currency = {!! json_encode(! empty($currency) ? $currency : config('money.currencies.' . company()->currency)) !!};
+            }
+        </script>
+    @endpush
 
     <x-script folder="banking" file="transactions" />
 </x-layouts.admin>

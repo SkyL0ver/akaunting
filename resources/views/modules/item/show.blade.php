@@ -54,7 +54,13 @@
                     @endif
                 </div>
 
-                <div class="relative w-full lg:w-5/12" x-data="{ price_type : 'yearly' }">
+                <div class="relative w-full lg:w-5/12"
+                    @if (in_array('cloud', $module->where_to_use) && count($module->where_to_use) == 1)
+                        x-data="{ price_type : 'lifetime' }"
+                    @else
+                        x-data="{ price_type : 'yearly' }"
+                    @endif
+                >
                     <div class="flex flex-col space-y-6">
                         <div class="flex flex-col cursor-default">
                             <div class="flex flex-col space-y-4">
@@ -121,7 +127,11 @@
             </div>
 
             <div class="tabs w-full">
-                <x-tabs class="flex items-center overflow-x-scroll lg:overflow-visible" active="{{ ! empty($module->call_to_actions) ? 'features' : 'description' }}">
+                <x-tabs
+                    class="w-full lg:w-auto"
+                    active="{{ ! empty($module->call_to_actions) ? 'features' : 'description' }}"
+                    data-disable-slider
+                >
                     <x-slot name="navs">
                         @stack('features_nav_start')
 

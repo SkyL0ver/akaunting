@@ -17,10 +17,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laratrust\Traits\LaratrustUserTrait;
 use Lorisleiva\LaravelSearchString\Concerns\SearchString;
+use Staudenmeir\EloquentHasManyDeep\HasRelationships;
 
 class User extends Authenticatable implements HasLocalePreference
 {
-    use HasFactory, LaratrustUserTrait, Media, Notifiable, Owners, SearchString, SoftDeletes, Sortable, Sources, Tenants, Users;
+    use HasFactory, HasRelationships, LaratrustUserTrait, Media, Notifiable, Owners, SearchString, SoftDeletes, Sortable, Sources, Tenants, Users;
 
     protected $table = 'users';
 
@@ -37,7 +38,11 @@ class User extends Authenticatable implements HasLocalePreference
      * @var array
      */
     protected $casts = [
-        'enabled' => 'boolean',
+        'enabled'           => 'boolean',
+        'last_logged_in_at' => 'datetime',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
+        'deleted_at'        => 'datetime',
     ];
 
     /**
@@ -46,13 +51,6 @@ class User extends Authenticatable implements HasLocalePreference
      * @var array
      */
     protected $hidden = ['password', 'remember_token'];
-
-    /**
-     * The attributes that should be mutated to dates.
-     *
-     * @var array
-     */
-    protected $dates = ['last_logged_in_at', 'created_at', 'updated_at', 'deleted_at'];
 
     /**
      * Sortable columns.
@@ -96,7 +94,7 @@ class User extends Authenticatable implements HasLocalePreference
 
     public function roles()
     {
-        return $this->belongsToMany('App\Models\Auth\Role', 'App\Models\Auth\UserRole');
+        return $this->belongsToMany(role_model_class(), 'App\Models\Auth\UserRole');
     }
 
     /**
@@ -195,7 +193,7 @@ class User extends Authenticatable implements HasLocalePreference
         /**
          * Modules that use the sort parameter in CRUD operations cause an error,
          * so this sort parameter set back to old value after the query is executed.
-         * 
+         *
          * for Custom Fields module
          */
         $request_sort = $request->get('sort');
@@ -203,7 +201,8 @@ class User extends Authenticatable implements HasLocalePreference
         $query->usingSearchString($search)->sortable($sort);
 
         $request->merge(['sort' => $request_sort]);
-        $request->offsetUnset('direction');
+        // This line disabled because broken sortable issue.
+        //$request->offsetUnset('direction');
         $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
 
         return $query->paginate($limit);
@@ -240,6 +239,33 @@ class User extends Authenticatable implements HasLocalePreference
     public function scopeIsNotCustomer($query)
     {
         return $query->wherePermissionIs('read-admin-panel');
+    }
+
+    /**
+     * Scope to only employees.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeIsEmployee($query)
+    {
+        return $query->whereHasRole('employee');
+    }
+
+    /**
+     * Scope to only users.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeIsNotEmployee($query)
+    {
+        return $query->wherePermissionIs('read-admin-panel');
+    }
+
+    public function scopeEmail($query, $email)
+    {
+        return $query->where('email', '=', $email);
     }
 
     /**
@@ -286,6 +312,26 @@ class User extends Authenticatable implements HasLocalePreference
         return (bool) $this->can('read-admin-panel');
     }
 
+    /**
+     * Determine if user is a employee.
+     *
+     * @return bool
+     */
+    public function isEmployee()
+    {
+        return (bool) $this->hasRole('employee');
+    }
+
+    /**
+     * Determine if user is not a employee.
+     *
+     * @return bool
+     */
+    public function isNotEmployee()
+    {
+        return (bool) ! $this->hasRole('employee');
+    }
+
     public function scopeSource($query, $source)
     {
         return $query->where($this->qualifyColumn('created_from'), $source);
@@ -329,9 +375,15 @@ class User extends Authenticatable implements HasLocalePreference
     {
         $actions = [];
 
-        if (user()->id == $this->id) {
-            return $actions;
-        }
+        $actions[] = [
+            'title' => trans('general.show'),
+            'icon' => 'visibility',
+            'url' => route('users.show', $this->id),
+            'permission' => 'read-auth-users',
+            'attributes' => [
+                'id' => 'index-line-actions-show-user-' . $this->id,
+            ],
+        ];
 
         $actions[] = [
             'title' => trans('general.edit'),
@@ -339,7 +391,7 @@ class User extends Authenticatable implements HasLocalePreference
             'url' => route('users.edit', $this->id),
             'permission' => 'update-auth-users',
             'attributes' => [
-                'id' => 'index-line-actions-show-user-' . $this->id,
+                'id' => 'index-line-actions-edit-user-' . $this->id,
             ],
         ];
 
@@ -355,16 +407,18 @@ class User extends Authenticatable implements HasLocalePreference
             ];
         }
 
-        $actions[] = [
-            'type' => 'delete',
-            'icon' => 'delete',
-            'route' => 'users.destroy',
-            'permission' => 'delete-auth-users',
-            'attributes' => [
-                'id' => 'index-line-actions-delete-user-' . $this->id,
-            ],
-            'model' => $this,
-        ];
+        if (user()->id != $this->id) {
+            $actions[] = [
+                'type' => 'delete',
+                'icon' => 'delete',
+                'route' => 'users.destroy',
+                'permission' => 'delete-auth-users',
+                'attributes' => [
+                    'id' => 'index-line-actions-delete-user-' . $this->id,
+                ],
+                'model' => $this,
+            ];
+        }
 
         return $actions;
     }

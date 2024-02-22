@@ -17,7 +17,12 @@
             </x-table.th>
 
             <x-table.th class="w-2/12 ltr:pr-6 rtl:pl-6 py-3 ltr:text-left rtl:text-right text-xs font-medium text-black tracking-wider" hidden-mobile>
-                <x-sortablelink column="category.name" title="{{ trans_choice('general.categories', 1) }}" />
+                <x-slot name="first">
+                    <x-sortablelink column="contact_name" title="{{ trans_choice($textContactName, 1) }}" />
+                </x-slot>
+                <x-slot name="second">
+                    <x-sortablelink column="category.name" title="{{ trans_choice('general.categories', 1) }}" />
+                </x-slot>
             </x-table.th>
 
             <x-table.th class="w-4/12 sm:w-3/12">
@@ -53,16 +58,29 @@
                         <x-date date="{{ $item->recurring->started_at }}" />
                     </x-slot>
                     <x-slot name="second">
-                        @if ($last = $item->recurring->getLastRecurring())
-                            {{ $last->format(company_date_format()) }}
+                        @if ($item->recurring->status == 'ended')
+                            @if ($last = $item->recurring->documents->last()?->issued_at)
+                                {{ $last->format(company_date_format()) }}
+                            @else
+                                <x-empty-data />
+                            @endif
+                        @else
+                            @if ($last = $item->recurring->getLastRecurring())
+                                {{ $last->format(company_date_format()) }}
+                            @endif
                         @endif
                     </x-slot>
                 </x-table.td>
 
                 <x-table.td class="w-2/12" hidden-mobile>
-                    <div class="flex items-center">
-                        <x-index.category :model="$item->category" />
-                    </div>
+                    <x-slot name="first">
+                        {{ $item->contact_name }}
+                    </x-slot>
+                    <x-slot name="second">
+                        <div class="flex items-center">
+                            <x-index.category :model="$item->category" />
+                        </div>
+                    </x-slot>
                 </x-table.td>
 
                 <x-table.td class="w-4/12 sm:w-3/12">
@@ -71,7 +89,20 @@
 
                 <x-table.td class="w-2/12" hidden-mobile>
                     <x-slot name="first">
-                        {{ trans('recurring.' . $item->recurring->frequency) }}
+                        @if ($item->recurring->interval > 1)
+                            <x-tooltip 
+                                id="tooltip-frequency-{{ $item->recurring->id }}"
+                                placement="top"
+                                message="{{ trans('recurring.custom_frequency_desc', [
+                                    'interval' => $item->recurring->interval,
+                                    'frequency' => str()->lower(trans('recurring.' . str_replace(['daily', 'ly'], ['days', 's'], $item->recurring->frequency)))
+                                ]) }}"
+                            >
+                                {{ trans('recurring.custom') }}
+                            </x-tooltip>
+                        @else
+                            {{ trans('recurring.' . $item->recurring->frequency) }}
+                        @endif
                     </x-slot>
                     <x-slot name="second">
                         @if ($item->recurring->limit_by == 'count')
@@ -87,7 +118,7 @@
                 </x-table.td>
 
                 <x-table.td class="w-4/12 sm:w-2/12" kind="amount">
-                    <x-money :amount="$item->amount" :currency="$item->currency_code" convert />
+                    <x-money :amount="$item->amount" :currency="$item->currency_code" />
                 </x-table.td>
 
                 <x-table.td kind="action">

@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\Auth\UserInvitation;
+use Illuminate\Support\Facades\Route;
 
 trait Users
 {
@@ -102,9 +103,15 @@ trait Users
             return route('login');
         }
 
-        $route_name = $user->isCustomer() ? 'portal.dashboard' : $user->landing_page;
+        $route_name = $user->isCustomer()
+                    ? 'portal.dashboard'
+                    : (Route::has($user->landing_page) ? $user->landing_page : 'dashboard');
 
         $company_id = company_id() ?: $this->getFirstCompanyOfUser()?->id;
+
+        if (empty($company_id)) {
+            return route('login');
+        }
 
         return route($route_name, ['company_id' => $company_id]);
     }

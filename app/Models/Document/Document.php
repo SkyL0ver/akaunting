@@ -3,6 +3,7 @@
 namespace App\Models\Document;
 
 use App\Abstracts\Model;
+use App\Interfaces\Utility\DocumentNumber;
 use App\Models\Common\Media as MediaModel;
 use App\Models\Setting\Tax;
 use App\Scopes\Document as Scope;
@@ -30,8 +31,6 @@ class Document extends Model
 
     protected $appends = ['attachment', 'amount_without_tax', 'discount', 'paid', 'received_at', 'status_label', 'sent_at', 'reconciled', 'contact_location'];
 
-    protected $dates = ['deleted_at', 'issued_at', 'due_at'];
-
     protected $fillable = [
         'company_id',
         'type',
@@ -54,6 +53,8 @@ class Document extends Model
         'contact_state',
         'contact_zip_code',
         'contact_city',
+        'title',
+        'subheading',
         'notes',
         'footer',
         'parent_id',
@@ -67,14 +68,27 @@ class Document extends Model
      * @var array
      */
     protected $casts = [
-        'amount' => 'double',
+        'issued_at'     => 'datetime',
+        'due_at'        => 'datetime',
+        'amount'        => 'double',
         'currency_rate' => 'double',
+        'deleted_at'    => 'datetime',
     ];
 
     /**
      * @var array
      */
-    public $sortable = ['document_number', 'contact_name', 'amount', 'status', 'issued_at', 'due_at'];
+    public $sortable = [
+        'issued_at',
+        'due_at',
+        'status',
+        'contact_name',
+        'document_number',
+        'amount',
+        'recurring.started_at',
+        'category.name',
+        'recurring.status',
+    ];
 
     /**
      * @var array
@@ -216,7 +230,10 @@ class Document extends Model
 
     public function scopeInvoiceRecurring(Builder $query): Builder
     {
-        return $query->where($this->qualifyColumn('type'), '=', self::INVOICE_RECURRING_TYPE);
+        return $query->where($this->qualifyColumn('type'), '=', self::INVOICE_RECURRING_TYPE)
+                    ->whereHas('recurring', function (Builder $query) {
+                        $query->whereNull('deleted_at');
+                    });
     }
 
     public function scopeBill(Builder $query): Builder
@@ -226,7 +243,10 @@ class Document extends Model
 
     public function scopeBillRecurring(Builder $query): Builder
     {
-        return $query->where($this->qualifyColumn('type'), '=', self::BILL_RECURRING_TYPE);
+        return $query->where($this->qualifyColumn('type'), '=', self::BILL_RECURRING_TYPE)
+                    ->whereHas('recurring', function (Builder $query) {
+                        $query->whereNull('deleted_at');
+                    });
     }
 
     /**
@@ -244,7 +264,7 @@ class Document extends Model
         }
 
         $this->status          = 'draft';
-        $this->document_number = $this->getNextDocumentNumber($type);
+        $this->document_number = app(DocumentNumber::class)->getNextNumber($type, $src->contact);
     }
 
     public function getSentAtAttribute(string $value = null)
@@ -268,9 +288,11 @@ class Document extends Model
      */
     public function getAttachmentAttribute($value = null)
     {
-        if (!empty($value) && !$this->hasMedia('attachment')) {
+        $has_attachment = $this->hasMedia('attachment');
+
+        if (! empty($value) && ! $has_attachment) {
             return $value;
-        } elseif (!$this->hasMedia('attachment')) {
+        } elseif (! $has_attachment) {
             return false;
         }
 
@@ -317,11 +339,15 @@ class Document extends Model
             return false;
         }
 
+        if ($this->status == 'paid' ) {
+            return $this->amount;
+        }
+
         $paid = 0;
 
         $code = $this->currency_code;
         $rate = $this->currency_rate;
-        $precision = config('money.' . $code . '.precision');
+        $precision = currency($code)->getPrecision();
 
         if ($this->transactions->count()) {
             foreach ($this->transactions as $transaction) {
@@ -353,7 +379,7 @@ class Document extends Model
 
         $code = $this->currency_code;
         $rate = $this->currency_rate;
-        $precision = config('money.' . $code . '.precision');
+        $precision = currency($code)->getPrecision();
 
         if ($this->transactions->count()) {
             foreach ($this->transactions as $transaction) {
@@ -383,7 +409,7 @@ class Document extends Model
      */
     public function getAmountDueAttribute()
     {
-        $precision = config('money.' . $this->currency_code . '.precision');
+        $precision = currency($this->currency_code)->getPrecision();
 
         return round($this->amount - $this->paid, $precision);
     }
@@ -463,7 +489,7 @@ class Document extends Model
             $location[] = $this->contact_state;
         }
 
-        if ($this->contact_country && in_array($this->contact_country, trans('countries'))) {
+        if ($this->contact_country && array_key_exists($this->contact_country, trans('countries'))) {
             $location[] = trans('countries.' . $this->contact_country);
         }
 
@@ -528,19 +554,36 @@ class Document extends Model
             ];
         } catch (\Exception $e) {}
 
-        if ((empty($this->transactions->count()) || (! empty($this->transactions->count()) && $this->paid != $this->amount))) {
+        if (
+            $this->status != 'paid'
+            && ! str_contains($this->type, 'recurring')
+            && (empty($this->transactions->count())
+            || (! empty($this->transactions->count()) && $this->paid != $this->amount))
+        ) {
             try {
-                $actions[] = [
-                    'type' => 'button',
-                    'title' => trans('invoices.add_payment'),
-                    'icon' => 'paid',
-                    'url' => route('modals.documents.document.transactions.create', $this->id),
-                    'permission' => 'read-' . $group . '-' . $permission_prefix,
-                    'attributes' => [
-                        'id' => 'index-line-actions-payment-' . $this->type . '-' . $this->id,
-                        '@click' => 'onAddPayment("' . route('modals.documents.document.transactions.create', $this->id) . '")',
-                    ],
-                ];
+                if ($this->totals->count()) {
+                    $actions[] = [
+                        'type' => 'button',
+                        'title' => trans('invoices.add_payment'),
+                        'icon' => 'paid',
+                        'url' => route('modals.documents.document.transactions.create', $this->id),
+                        'permission' => 'read-' . $group . '-' . $permission_prefix,
+                        'attributes' => [
+                            'id' => 'index-line-actions-payment-' . $this->type . '-' . $this->id,
+                            '@click' => 'onAddPayment("' . route('modals.documents.document.transactions.create', $this->id) . '")',
+                        ],
+                    ];
+                } else {
+                    $actions[] = [
+                        'type' => 'button',
+                        'title' => trans('invoices.messages.totals_required', ['type' => $this->type]),
+                        'icon' => 'paid',
+                        'permission' => 'read-' . $group . '-' . $permission_prefix,
+                        'attributes' => [
+                            "disabled" => "disabled",
+                        ],
+                    ];
+                }
             } catch (\Exception $e) {}
         }
 
@@ -591,7 +634,7 @@ class Document extends Model
                 } catch (\Exception $e) {}
 
                 try {
-                    if (! empty($this->contact) && $this->contact->email && ($this->type == 'invoice')) {
+                    if (! empty($this->contact) && $this->contact->has_email && ($this->type == 'invoice')) {
                         $actions[] = [
                             'type' => 'button',
                             'title' => trans('invoices.send_mail'),
@@ -611,10 +654,10 @@ class Document extends Model
                 'type' => 'divider',
             ];
 
-            if ($this->status != 'cancelled') {
+            if (! in_array($this->status, ['cancelled', 'draft'])) {
                 try {
                     $actions[] = [
-                        'title' => trans('general.cancel'),
+                        'title' => trans('documents.actions.cancel'),
                         'icon' => 'cancel',
                         'url' => route($prefix . '.cancelled', $this->id),
                         'permission' => 'update-' . $group . '-' . $permission_prefix,
@@ -636,6 +679,7 @@ class Document extends Model
                     'title' => $translation_prefix,
                     'route' => $prefix . '.destroy',
                     'permission' => 'delete-' . $group . '-' . $permission_prefix,
+                    'model-name' => 'document_number',
                     'attributes' => [
                         'id' => 'index-line-actions-delete-' . $this->type . '-' . $this->id,
                     ],
@@ -643,17 +687,19 @@ class Document extends Model
                 ];
             } catch (\Exception $e) {}
         } else {
-            try {
-                $actions[] = [
-                    'title' => trans('general.end'),
-                    'icon' => 'block',
-                    'url' => route($prefix. '.end', $this->id),
-                    'permission' => 'update-' . $group . '-' . $permission_prefix,
-                    'attributes' => [
-                        'id' => 'index-line-actions-end-' . $this->type . '-' . $this->id,
-                    ],
-                ];
-            } catch (\Exception $e) {}
+            if ($this->recurring && $this->recurring->status != 'ended') {
+                try {
+                    $actions[] = [
+                        'title' => trans('general.end'),
+                        'icon' => 'block',
+                        'url' => route($prefix. '.end', $this->id),
+                        'permission' => 'update-' . $group . '-' . $permission_prefix,
+                        'attributes' => [
+                            'id' => 'index-line-actions-end-' . $this->type . '-' . $this->id,
+                        ],
+                    ];
+                } catch (\Exception $e) {}
+            }
         }
 
         return $actions;
