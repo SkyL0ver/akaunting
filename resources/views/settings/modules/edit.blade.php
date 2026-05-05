@@ -24,10 +24,17 @@
                                     @break
                                 @case('select')
                                 @case('selectGroup')
+                                    @php 
+                                        $values = $field['values'];
+                                        foreach ($values as $key => $value) {
+                                            $values[$key] = trans($value);
+                                        }
+                                    @endphp
+
                                     <x-form.group.select
                                         name="{{ $field['name'] }}"
                                         label="{{ trans($field['title']) }}"
-                                        :options="$field['values']"
+                                        :options="$values"
                                         :clearable="'false'"
                                         :selected="setting($module->getAlias() . '.' . $field['name'], $field['selected'])"
                                         :dynamic-attributes="$field['attributes']"
@@ -88,13 +95,27 @@
                                         without-add-new
                                     />
                                     @break
+                                @case('toggle')
+                                @case('toggleGroup')
+                                    @php $value = setting($module->getAlias() . '.' . $field['name'], $field['value'] ?? null); @endphp
+
+                                    <x-form.group.toggle
+                                        name="{{ $field['name'] }}"
+                                        label="{{ trans($field['title']) }}"
+                                        enable="{{ ! empty($field['enable']) ? trans($field['enable']) : trans('general.enable') }}"
+                                        disable="{{ ! empty($field['disable']) ? trans($field['disable']) : trans('general.disable') }}"
+                                        :value="$value"
+                                        :dynamic-attributes="$field['attributes']"
+                                    />
+                                    @break
                                 @default
                                     @php
                                         $type = str_replace('Group', '', $type);
                                         $componentName = 'form.group.' . $type;
+                                        $value = setting($module->getAlias() . '.' . $field['name'], $field['value'] ?? null);
                                     @endphp
 
-                                    <x-dynamic-component :component="$componentName" name="{{ $field['name'] }}" label="{{ trans($field['title']) }}" :dynamic-attributes="$field['attributes']" />
+                                    <x-dynamic-component :component="$componentName" name="{{ $field['name'] }}" label="{{ trans($field['title']) }}" :value="$value" :dynamic-attributes="$field['attributes']" />
                             @endswitch
                         @endforeach
 

@@ -7,6 +7,7 @@ use App\Interfaces\Utility\DocumentNumber;
 use App\Models\Common\Media as MediaModel;
 use App\Models\Setting\Tax;
 use App\Scopes\Document as Scope;
+use App\Traits\Contacts;
 use App\Traits\Currencies;
 use App\Traits\DateTime;
 use App\Traits\Documents;
@@ -20,7 +21,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Document extends Model
 {
-    use HasFactory, Documents, Cloneable, Currencies, DateTime, Media, Recurring;
+    use HasFactory, Documents, Cloneable, Contacts, Currencies, DateTime, Media, Recurring;
 
     public const INVOICE_TYPE = 'invoice';
     public const INVOICE_RECURRING_TYPE = 'invoice-recurring';
@@ -42,6 +43,8 @@ class Document extends Model
         'amount',
         'currency_code',
         'currency_rate',
+        'discount_type',
+        'discount_rate',
         'category_id',
         'contact_id',
         'contact_name',
@@ -57,6 +60,8 @@ class Document extends Model
         'subheading',
         'notes',
         'footer',
+        'template',
+        'color',
         'parent_id',
         'created_from',
         'created_by',
@@ -127,7 +132,7 @@ class Document extends Model
 
     public function items()
     {
-        return $this->hasMany('App\Models\Document\DocumentItem', 'document_id');
+        return $this->hasMany('App\Models\Document\DocumentItem', 'document_id')->with('taxes');
     }
 
     public function item_taxes()
@@ -269,14 +274,22 @@ class Document extends Model
 
     public function getSentAtAttribute(string $value = null)
     {
-        $sent = $this->histories()->where('document_histories.status', 'sent')->first();
+        if ($this->relationLoaded('histories')) {
+            $sent = $this->histories->where('status', 'sent')->first();
+        } else {
+            $sent = $this->histories()->where('document_histories.status', 'sent')->first();
+        }
 
         return $sent->created_at ?? null;
     }
 
     public function getReceivedAtAttribute(string $value = null)
     {
-        $received = $this->histories()->where('document_histories.status', 'received')->first();
+        if ($this->relationLoaded('histories')) {
+            $received = $this->histories->where('status', 'received')->first();
+        } else {
+            $received = $this->histories()->where('document_histories.status', 'received')->first();
+        }
 
         return $received->created_at ?? null;
     }
@@ -313,6 +326,26 @@ class Document extends Model
      *
      * @return string
      */
+    public function getDiscountRateAttribute($value)
+    {
+        return $value ?? 0;
+    }
+
+    /**
+     * Get the discount percentage.
+     *
+     * @return string
+     */
+    public function getDiscountTypeAttribute($value)
+    {
+        return $value ?? 'percentage';
+    }
+
+    /**
+     * Get the discount percentage.
+     *
+     * @return string
+     */
     public function getDiscountAttribute()
     {
         $percent = 0;
@@ -322,7 +355,11 @@ class Document extends Model
         if ($discount) {
             $sub_total = $this->totals->where('code', 'sub_total')->makeHidden('title')->pluck('amount')->first();
 
-            $percent = number_format((($discount * 100) / $sub_total), 0);
+            if ($sub_total && $sub_total > 0) {
+                $percent = number_format((($discount * 100) / $sub_total), 0);
+            } else {
+                $percent = 0;
+            }
         }
 
         return $percent;
@@ -348,6 +385,11 @@ class Document extends Model
         $code = $this->currency_code;
         $rate = $this->currency_rate;
         $precision = currency($code)->getPrecision();
+
+        // Lazy eager load transactions if not already loaded to prevent N+1 queries
+        if (!$this->relationLoaded('transactions')) {
+            $this->load('transactions');
+        }
 
         if ($this->transactions->count()) {
             foreach ($this->transactions as $transaction) {
@@ -381,6 +423,11 @@ class Document extends Model
         $rate = $this->currency_rate;
         $precision = currency($code)->getPrecision();
 
+        // Lazy eager load transactions if not already loaded to prevent N+1 queries
+        if (!$this->relationLoaded('transactions')) {
+            $this->load('transactions');
+        }
+
         if ($this->transactions->count()) {
             foreach ($this->transactions as $transaction) {
                 $amount = $transaction->amount;
@@ -390,7 +437,7 @@ class Document extends Model
                 }
 
                 if ($transaction->reconciled) {
-                    $reconciled_amount = +$amount;
+                    $reconciled_amount += $amount;
                 }
             }
         }
@@ -470,30 +517,43 @@ class Document extends Model
 
     public function getTemplatePathAttribute($value = null)
     {
-        return $value ?: 'sales.invoices.print_' . setting('invoice.template');
+        if ($value) {
+            // Allow safe view-path characters: alphanumeric, dots, underscores, colons (for module views like module::view.path), hyphens
+            if (! preg_match('/^[a-zA-Z0-9._:\-]+$/', $value)) {
+                $value = null;
+            }
+        }
+
+        if (! $value) {
+            // Sanitize the template identifier from settings to alphanumeric + underscores only
+            $template = preg_replace('/[^a-zA-Z0-9_]/', '', (string) setting('invoice.template')) ?: 'default';
+            $value = 'sales.invoices.print_' . $template;
+        }
+
+        /* The above validation ensures that $value is a safe view path. We can now check if the view exists.
+         * If the view doesn't exist, we can fall back to the default template.
+         *
+        if (! empty($value) && view()->exists($value)) {
+            return $value;
+        }
+
+        if (! empty($this->template) && view()->exists('sales.invoices.print_' . $this->template)) {
+            return 'sales.invoices.print_' . $this->template;
+        }
+
+        return 'sales.invoices.print_' . setting('invoice.template');
+        */
+
+        return $value;
     }
 
     public function getContactLocationAttribute()
     {
-        $location = [];
-
-        if ($this->contact_city) {
-            $location[] = $this->contact_city;
-        }
-
-        if ($this->contact_zip_code) {
-            $location[] = $this->contact_zip_code;
-        }
-
-        if ($this->contact_state) {
-            $location[] = $this->contact_state;
-        }
-
         if ($this->contact_country && array_key_exists($this->contact_country, trans('countries'))) {
-            $location[] = trans('countries.' . $this->contact_country);
+            $country = trans('countries.' . $this->contact_country);
         }
 
-        return implode(', ', $location);
+        return $this->getFormattedAddress($this->contact_city, $country ?? null, $this->contact_state, $this->contact_zip_code);
     }
 
     /**

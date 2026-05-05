@@ -4,32 +4,30 @@
             <table>
                 <tbody>
                     <tr>
-                        <th class="text-left p-0">
-                            <span class="font-medium text-left text-sm p-0">{{ company.name }}</span>
+                        <th class="ltr:text-left rtl:text-right p-0">
+                            <span class="font-medium ltr:text-left rtl:text-right text-sm p-0">{{ company.name }}</span>
                         </th>
                     </tr>
                     <tr v-if="company.address">
-                        <th class="font-normal text-sm text-left p-0">
+                        <th class="font-normal text-sm ltr:text-left rtl:text-right p-0">
                             {{ company.address }}
                         </th>
                     </tr>
                     <tr v-if="company.location">
-                        <th class="font-normal text-sm text-left p-0">
-                            {{ company.location }}
-                        </th>
+                        <th class="font-normal text-sm ltr:text-left rtl:text-right p-0" v-html="company.location"></th>
                     </tr>
                     <tr v-if="company.tax_number">
-                        <th class="font-normal text-sm text-left p-0">
+                        <th class="font-normal text-sm ltr:text-left rtl:text-right p-0">
                             {{ taxNumberText }}: {{ company.tax_number }}
                         </th>
                     </tr>
                     <tr v-if="company.phone">
-                        <th class="font-normal text-sm text-left p-0">
+                        <th class="font-normal text-sm ltr:text-left rtl:text-right p-0">
                             {{ company.phone }}
                         </th>
                     </tr>
                     <tr>
-                        <th class="font-normal text-sm text-left p-0">
+                        <th class="font-normal text-sm ltr:text-left rtl:text-right p-0">
                             {{ company.email }}
                         </th>
                     </tr>
@@ -37,9 +35,9 @@
             </table>
         </div>
 
-        <div class="absolute right-0 top-0 group">
+        <div class="absolute ltr:right-0 rtl:left-0 top-0 group">
             <div class="w-6 h-7 flex items-center justify-center rounded-lg p-0 group-hover:bg-gray-100">
-                <span class="material-icons-outlined text-lg opacity-70 group-hover:text-gray-500 cursor-pointer" @click="onEditCompany">edit</span>
+                <span class="material-icons-outlined rtl:-rotate-90 text-lg opacity-70 group-hover:text-gray-500 cursor-pointer" @click="onEditCompany">edit</span>
             </div>
         </div>
 

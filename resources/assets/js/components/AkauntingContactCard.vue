@@ -7,7 +7,7 @@
                         <div class="text-black h-full">
                             <button type="button" class="w-full h-full flex flex-col items-center justify-center" @click="onContactList">
                                 <span class="material-icons-outlined text-7xl text-black-400 pointer-events-none">person_add</span>
-                                <span class="text-add-contact pointer-events-none"> {{ addContactText }} </span>
+                                <span class="text-add-contact pointer-events-none">{{ addContactText }}</span>
                             </button>
                         </div>
                     </div>
@@ -18,7 +18,8 @@
 
                     <div class="absolute top-0 left-0 right-0 bg-white border rounded-lg" style="z-index: 999;" v-if="show.contact_list">
                         <div class="relative">
-                            <span class="material-icons-round absolute left-4 top-3 text-lg">search</span>
+                            <span class="material-icons-round absolute ltr:left-4 rtl:right-4 top-3 text-lg">search</span>
+
                             <input
                                 type="text"
                                 data-input="true"
@@ -47,43 +48,47 @@
                         </ul>
 
                         <div class="flex items-center justify-center h-11 text-sm text-center text-purple font-bold border border-l-0 border-r-0 border-b-0 rounded-bl-lg rounded-br-lg hover:bg-gray-100 cursor-pointer" tabindex="0" @click="onContactCreate">
-                            <span class="material-icons text-lg font-bold mr-1 mt-1">add</span>
+                            <span class="material-icons text-lg font-bold ltr:mr-1 rtl:ml-1 mt-1">add</span>
                             {{ createNewContactText }}
                         </div>
                     </div>
                 </div>
-            </div>  
+            </div>
+
             <div v-else class="document-contact-with-contact-bill-to">
                 <div>
                     <span class="text-sm">{{ contactInfoText }}</span>
-                </div>  
+                </div>
+
                 <div class="overflow-x-visible mt-0">
                     <table class="table table-borderless p-0">
                         <tbody>
                             <tr>
-                                <th class="font-medium text-left text-sm p-0">
+                                <th class="font-medium ltr:text-left rtl:text-right text-sm p-0">
                                     <span class="block">{{ contact.name }}</span>
                                 </th>
                             </tr>
+
                             <tr v-if="contact.address">
-                                <th class="font-normal text-xs text-left p-0">
+                                <th class="font-normal text-xs ltr:text-left rtl:text-right p-0">
                                     <div class="w-60 truncate">
                                         {{ contact.address }}
                                     </div>
                                 </th>
                             </tr>
+
                             <tr v-if="contact.location">
-                                <th class="font-normal text-xs text-left p-0">
-                                    {{ contact.location }}
-                                </th>
+                                <th class="font-normal text-sm ltr:text-left rtl:text-right p-0" v-html="contact.location"></th>
                             </tr>
+
                             <tr v-if="contact.tax_number">
-                                <th class="font-normal text-xs text-left p-0">
+                                <th class="font-normal text-xs ltr:text-left rtl:text-right p-0">
                                     {{ taxNumberText }}: {{ contact.tax_number }}
                                 </th>
                             </tr>
+
                             <tr v-if="contact.phone">
-                                <th class="font-normal text-xs text-left p-0">
+                                <th class="font-normal text-xs ltr:text-left rtl:text-right p-0">
                                     {{ contact.phone }} &nbsp;
                                     <span v-if="contact.email">
                                     - {{ contact.email }}
@@ -94,6 +99,7 @@
                     </table>
                 </div>
             </div>  
+
             <div :class="show.contact_selected ? 'flex' : 'hidden'" class="absolute flex-col mt-2">
                 <button type="button" class="p-0 text-xs text-purple ltr:text-left rtl:text-right" @click="onContactEdit">
                     <span class="bg-no-repeat bg-0-2 bg-0-full hover:bg-full-2 bg-gradient-to-b from-transparent to-purple transition-backgroundSize">
@@ -105,7 +111,8 @@
                         {{ chooseDifferentContactText }}
                     </span>
                 </button>
-            </div>  
+            </div> 
+
             <component v-bind:is="add_new_html" @submit="onSubmit" @cancel="onCancel"></component>
         </div>
     </div>
@@ -184,7 +191,8 @@ export default {
                     state:'',
                     country:'',
                     location:'',
-                    reference: ''
+                    reference: '',
+                    category_id: '',
                 };
             },
             description: 'List of Contacts'
@@ -298,7 +306,8 @@ export default {
                 state: '',
                 country: '',
                 location: '',
-                reference: ''
+                reference: '',
+                category_id: '',
             });
         },
 
@@ -332,7 +341,8 @@ export default {
                             state: (contact.state) ? contact.state : '',
                             country: (contact.country) ? contact.country : '',
                             location: (contact.location) ? contact.location : '',
-                            reference: (contact.reference) ? contact.reference : ''
+                            reference: (contact.reference) ? contact.reference : '',
+                            category_id: (contact.category_id) ? contact.category_id : ''
                         });
                     }
                 }, this);
@@ -543,9 +553,10 @@ export default {
                         state: (contact.state) ? contact.state : '',
                         country: (contact.country) ? contact.country : '',
                         location: (contact.location) ? contact.location : '',
-                        reference: (contact.reference) ? contact.reference : ''
+                        reference: (contact.reference) ? contact.reference : '',
+                        category_id: (contact.category_id) ? contact.category_id : ''
                     });
-                    
+
                     this.$emit('new', contact);
                     this.$emit('change', this.contact);
 
@@ -604,7 +615,8 @@ export default {
                     state: '',
                     country: '',
                     location: '',
-                    reference: ''
+                    reference: '',
+                    category_id: '',
                 });
 
                 index++;
@@ -630,7 +642,8 @@ export default {
                     state: (contact.state) ? contact.state : '',
                     country: (contact.country) ? contact.country : '',
                     location: (contact.location) ? contact.location : '',
-                    reference: (contact.reference) ? contact.reference : ''
+                    reference: (contact.reference) ? contact.reference : '',
+                    category_id: (contact.category_id) ? contact.category_id : ''
                 });
             }, this);
         }
@@ -661,8 +674,9 @@ export default {
                 return 0;
             });
 
+            // Keep legacy local label filtering behavior for backward compatibility.
             return this.contact_list.filter(contact => {
-                return contact.value.toLowerCase().includes(this.search.toLowerCase())
+                return (contact.value || '').toLowerCase().includes(this.search.toLowerCase());
             });
         },
     },

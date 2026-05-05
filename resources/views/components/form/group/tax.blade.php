@@ -17,6 +17,10 @@
         :selected="$selected"
         change="{{ $change }}"
         sort-options="false"
+        :option_field="[
+            'key' => 'id',
+            'value' => 'title'
+        ]"
 
         :multiple="$multiple"
         :group="$group"
@@ -29,8 +33,8 @@
     >
         <template #option="{option}">
             <span class="tax-group flex items-center">
-                <span class="float-left">
-                    @{{ option.value }}
+                <span class="ltr:float-left rtl:float-right">
+                    @{{ option.option.title }}
                 </span>
 
                 <span 
@@ -56,7 +60,7 @@
             </span>
         </template>
     </x-form.group.select>
-@elseif (($attributes->has('withoutRemote') && $attributes->has('without-remote')) && (! $attributes->has('withoutAddNew') && ! $attributes->has('without-add-new')))
+@elseif (($attributes->has('withoutRemote') || $attributes->has('without-remote')) && (! $attributes->has('withoutAddNew') && ! $attributes->has('without-add-new')))
     <x-form.group.select
         add-new
         path="{{ $path }}"
@@ -68,6 +72,10 @@
         :selected="$selected"
         change="{{ $change }}"
         sort-options="false"
+        :option_field="[
+            'key' => 'id',
+            'value' => 'title'
+        ]"
 
         :multiple="$multiple"
         :group="$group"
@@ -80,8 +88,8 @@
     >
         <template #option="{option}">
             <span class="tax-group flex items-center">
-                <span class="float-left">
-                    @{{ option.value }}
+                <span class="ltr:float-left rtl:float-right">
+                    @{{ option.option.title }}
                 </span>
 
                 <span 
@@ -107,7 +115,7 @@
             </span>
         </template>
     </x-form.group.select>
-@elseif ((! $attributes->has('withoutRemote') && ! $attributes->has('without-remote')) && ($attributes->has('withoutAddNew') && $attributes->has('without-add-new')))
+@elseif ((! $attributes->has('withoutRemote') && ! $attributes->has('without-remote')) && ($attributes->has('withoutAddNew') || $attributes->has('without-add-new')))
     <x-form.group.select
         remote
         remote_action="{{ $remoteAction }}"
@@ -119,6 +127,10 @@
         :selected="$selected"
         change="{{ $change }}"
         sort-options="false"
+        :option_field="[
+            'key' => 'id',
+            'value' => 'title'
+        ]"
 
         :multiple="$multiple"
         :group="$group"
@@ -131,8 +143,8 @@
     >
         <template #option="{option}">
             <span class="tax-group flex items-center">
-                <span class="float-left">
-                    @{{ option.value }}
+                <span class="ltr:float-left rtl:float-right">
+                    @{{ option.option.title }}
                 </span>
 
                 <span 
@@ -167,6 +179,10 @@
         change="{{ $change }}"
         sort-options="false"
         :field="$field"
+        :option_field="[
+            'key' => 'id',
+            'value' => 'title'
+        ]"
 
         :multiple="$multiple"
         :group="$group"
@@ -179,8 +195,8 @@
     >
         <template #option="{option}">
             <span class="tax-group flex items-center">
-                <span class="float-left">
-                    @{{ option.value }}
+                <span class="ltr:float-left rtl:float-right">
+                    @{{ option.option.title }}
                 </span>
 
                 <span 

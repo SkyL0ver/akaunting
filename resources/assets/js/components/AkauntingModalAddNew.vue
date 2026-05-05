@@ -54,7 +54,7 @@
                                 <div v-if="buttons.payment" 
                                     class="mt-5 bg-gray-100 py-3 sm:flex justify-end sm:px-5 -mb-5 -mx-5 rounded-b-lg"
                                 >
-                                    <div v-if="buttons.payment.before_text" class="text-xs mt-2.5 mr-2">
+                                    <div v-if="buttons.payment.before_text" class="text-xs mt-2.5 ltr:mr-2 rtl:ml-2">
                                         {{ buttons.payment.before_text }}
                                     </div>
 
@@ -298,10 +298,13 @@ export default {
                                 this.form.currency_code = response.data.currency_code;
                                 this.form.currency_rate = response.data.currency_rate;
 
+                                this.currency.code = response.data.currency_code;
                                 this.currency.decimal = response.data.decimal_mark;
                                 this.currency.thousands = response.data.thousands_separator;
                                 this.currency.prefix = (response.data.symbol_first) ? response.data.symbol : '';
                                 this.currency.suffix = (! response.data.symbol_first) ? response.data.symbol : '';
+                                this.currency.symbol = response.data.symbol;
+                                this.currency.symbol_first = response.data.symbol_first;
                                 this.currency.precision = parseInt(response.data.precision);
 
                                 this.onChangeCurrencyPaymentAccount(response.data.currency_code);

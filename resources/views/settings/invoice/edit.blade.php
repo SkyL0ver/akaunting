@@ -18,7 +18,7 @@
 
                         <x-form.group.number name="number_next" label="{{ trans('settings.invoice.next') }}" value="{{ setting('invoice.number_next') }}" not-required />
 
-                        <x-form.group.select name="payment_terms" label="{{ trans('settings.invoice.payment_terms') }}" :options="$payment_terms" :clearable="'false'" :selected="setting('invoice.payment_terms')" not-required />
+                        <x-form.group.payment-term label="{{ trans('settings.invoice.payment_terms') }}" :clearable="'false'" :selected="setting('invoice.payment_terms')" not-required />
                     </x-slot>
                 </x-form.section>
 
@@ -81,6 +81,10 @@
 
                         <x-form.group.text name="subheading" label="{{ trans('settings.invoice.subheading') }}" value="{{ setting('invoice.subheading') }}" not-required />
 
+                        <x-form.group.text name="logo_size_width" label="{{ trans('settings.invoice.logo_size_width') }}" value="{{ setting('invoice.logo_size_width') }}" not-required trailing="PX" />
+
+                        <x-form.group.text name="logo_size_height" label="{{ trans('settings.invoice.logo_size_height') }}" value="{{ setting('invoice.logo_size_height') }}" not-required trailing="PX" />
+
                         <x-form.group.textarea name="notes" label="{{ trans_choice('general.notes', 2) }}" :value="setting('invoice.notes')" form-group-class="sm:col-span-3" not-required />
 
                         <x-form.group.textarea name="footer" label="{{ trans('general.footer') }}" :value="setting('invoice.footer')" form-group-class="sm:col-span-3" not-required />
@@ -131,7 +135,7 @@
                             />
                         </div>
 
-                        <div class="flex gap-10">
+                        <div class="col-span-6 flex gap-10">
                             <x-form.group.toggle name="hide_item_description" label="{{ trans('settings.invoice.hide.item_description') }}" :value="setting('invoice.hide_item_description')" change="settingsInvoice()" not-required form-group-class="sm:col-span-6" />
 
                             <x-form.group.toggle name="hide_amount" label="{{ trans('settings.invoice.hide.amount') }}" :value="setting('invoice.hide_amount')" not-required form-group-class="sm:col-span-6" />

@@ -4,7 +4,7 @@ return [
 
     'success' => [
         'added'             => 'S\'ha afegit :type!',
-        'created'			=> ':type creat!',
+        'created'            => ':type creat!',
         'updated'           => 'S\'ha actualitzat :type!',
         'deleted'           => 'S\'ha esborrat :type!',
         'duplicated'        => 'S\'ha duplicat :type!',
@@ -12,6 +12,7 @@ return [
         'import_queued'     => 'S\'ha planificat la importació de :type. Rebràs un correu quan hagi acabat.',
         'exported'          => 'S\'ha exportat :type!',
         'export_queued'     => 'S\'ha planificat l\'exportació de :type. Rebràs un correu quan estigui llesta per la descàrrega.',
+        'download_queued'   => 'S\'ha planificat la descàrrega de :type. Rebràs un correu quan estigui llesta per la descàrrega.',
         'enabled'           => 'S\'ha activat :type!',
         'disabled'          => 'S\'ha desactivat :type!',
         'connected'         => ':type connectat!',
@@ -45,6 +46,7 @@ return [
         'disable_code'      => 'Avís: No pots desactivar o canviar la moneda de <b>:name</b> perquè té :text relacionat.',
         'payment_cancel'    => 'Avís: Has cancel·lat el teu pagament recent :method!',
         'missing_transfer'  => 'Avís: No es troba la transferència relativa a aquesta transacció. S\'hauria d\'esborrar la transacció.',
+        'connect_tax'       => 'Avís: Aquest :type té un import d\'impost. Els impostos afegits a :type no es poden enllaçar, per tant l\'impost s\'afegirà al total.',
     ],
 
 ];

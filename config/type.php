@@ -10,31 +10,48 @@ return [
     // Categories
     'category' => [
         Category::INCOME_TYPE => [
-            'alias'             => '',
+            'alias' => '',
+            'group' => Category::INCOME_TYPE,
             'translation' => [
-                'prefix'        => 'general',
+                'prefix' => 'general',
             ],
+            'hide' => ['code'],
         ],
 
         Category::EXPENSE_TYPE => [
-            'alias'             => '',
+            'alias' => '',
+            'group' => Category::EXPENSE_TYPE,
             'translation' => [
-                'prefix'        => 'general',
+                'prefix' => 'general',
             ],
+            'hide' => ['code'],
+        ],
+
+        Category::COGS_TYPE => [
+            'alias' => '',
+            'group' => Category::COGS_TYPE,
+            'translation' => [
+                'prefix' => 'general',
+            ],
+            'hide' => ['code'],
         ],
 
         Category::ITEM_TYPE => [
-            'alias'             => '',
+            'alias' => '',
+            'group' => Category::ITEM_TYPE,
             'translation' => [
-                'prefix'        => 'general',
+                'prefix' => 'general',
             ],
+            'hide' => ['code'],
         ],
 
         Category::OTHER_TYPE => [
-            'alias'             => '',
+            'alias' => '',
+            'group' => Category::OTHER_TYPE,
             'translation' => [
-                'prefix'        => 'general',
+                'prefix' => 'general',
             ],
+            'hide' => ['code'],
         ],
     ],
 
@@ -58,9 +75,9 @@ return [
                 'section_billing_description'   => 'customers.form_description.billing',
                 'section_address_description'   => 'customers.form_description.address',
             ],
-            'category_type'         => 'income',
-            'document_type'         => 'invoice',
-            'transaction_type'      => 'income',
+            'category_type'         => Category::INCOME_TYPE,
+            'document_type'         => Document::INVOICE_TYPE,
+            'transaction_type'      => Transaction::INCOME_TYPE,
             'hide'                  => [],
             'class'                 => [],
             'script' => [
@@ -87,9 +104,9 @@ return [
                 'section_billing_description'   => 'vendors.form_description.billing',
                 'section_address_description'   => 'vendors.form_description.address',
             ],
-            'category_type'         => 'expense',
-            'document_type'         => 'bill',
-            'transaction_type'      => 'expense',
+            'category_type'         => Category::EXPENSE_TYPE,
+            'document_type'         => Document::BILL_TYPE,
+            'transaction_type'      => Transaction::EXPENSE_TYPE,
             'hide'                  => [],
             'class'                 => [],
             'script' => [
@@ -113,6 +130,7 @@ return [
                 'params' => [
                     'unpaid'            => ['search' => 'status:sent,viewed,partial'],
                     'draft'             => ['search' => 'status:draft'],
+                    'all'               => ['list_records' => 'all'],
                 ],
             ],
             'permission' => [
@@ -129,9 +147,9 @@ return [
             'setting' => [
                 'prefix'                => 'invoice',
             ],
-            'category_type'             => 'income',
-            'transaction_type'          => 'income',
-            'contact_type'              => 'customer', // use contact type
+            'category_type'             => Category::INCOME_TYPE,
+            'transaction_type'          => Transaction::INCOME_TYPE,
+            'contact_type'              => Contact::CUSTOMER_TYPE, // use contact type
             'inventory_stock_action'    => 'decrease', // decrease stock in stock tracking
             'transaction' => [
                 'email_template'        => 'invoice_payment_customer', // use email template
@@ -184,9 +202,9 @@ return [
             'setting' => [
                 'prefix'                => 'invoice',
             ],
-            'category_type'             => 'income',
-            'transaction_type'          => 'income',
-            'contact_type'              => 'customer', // use contact type
+            'category_type'             => Category::INCOME_TYPE,
+            'transaction_type'          => Transaction::INCOME_TYPE,
+            'contact_type'              => Contact::CUSTOMER_TYPE, // use contact type
             'inventory_stock_action'    => 'decrease', // decrease stock in stock tracking
             'hide'                      => [], // for document items
             'class'                     => [],
@@ -218,6 +236,7 @@ return [
                 'params' => [
                     'unpaid'            => ['search' => 'status:received,partial'],
                     'draft'             => ['search' => 'status:draft'],
+                    'all'               => ['list_records' => 'all'],
                 ],
             ],
             'permission' => [
@@ -233,9 +252,9 @@ return [
             'setting' => [
                 'prefix'                => 'bill',
             ],
-            'category_type'             => 'expense',
-            'transaction_type'          => 'expense',
-            'contact_type'              => 'vendor',
+            'category_type'             => Category::EXPENSE_TYPE,
+            'transaction_type'          => Transaction::EXPENSE_TYPE,
+            'contact_type'              => Contact::VENDOR_TYPE,
             'inventory_stock_action'    => 'increase', // increases stock in stock tracking
             'transaction' => [
                 'email_template'        => 'invoice_payment_customer', // use email template
@@ -286,11 +305,12 @@ return [
             'setting' => [
                 'prefix'                => 'bill',
             ],
-            'category_type'             => 'expense',
-            'transaction_type'          => 'expense',
-            'contact_type'              => 'vendor',
+            'category_type'             => Category::EXPENSE_TYPE,
+            'transaction_type'          => Transaction::EXPENSE_TYPE,
+            'contact_type'              => Contact::VENDOR_TYPE,
             'inventory_stock_action'    => 'increase', // increases stock in stock tracking
             'hide'                      => [],
+            'class'                     => [],
             'notification' => [
 
             ],
@@ -310,12 +330,17 @@ return [
 
     // Transactions
     'transaction' => [
-        Transaction::INCOME_TYPE => [
+        'transactions' => [
             'group'                 => 'banking',
             'route' => [
                 'prefix'            => 'transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'transaction', // banking/transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',
@@ -326,8 +351,41 @@ return [
                 'related_document_amount'   => 'invoices.invoice_amount',
                 'transactions'              => 'general.incomes',
             ],
-            'contact_type'          => 'customer',
-            'document_type'         => 'invoice',
+            'category_type'         => Category::INCOME_TYPE,
+            'contact_type'          => Contact::CUSTOMER_TYPE,
+            'document_type'         => Document::INVOICE_TYPE,
+            'split_type'            => Transaction::INCOME_SPLIT_TYPE,
+            'email_template'        => 'payment_received_customer',
+            'script' => [
+                'folder'            => 'banking',
+                'file'              => 'transactions',
+            ],
+        ],
+
+        Transaction::INCOME_TYPE => [
+            'group'                 => 'banking',
+            'route' => [
+                'prefix'            => 'transactions', // core use with group + prefix, module ex. estimates
+                'parameter'         => 'transaction', // banking/transactions/{parameter}/edit
+                //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
+            ],
+            'permission' => [
+                'prefix'            => 'transactions',
+                //'create'          => 'create-banking-transactions',
+            ],
+            'translation' => [
+                'prefix'                    => 'transactions', // this translation file name.
+                'related_document_amount'   => 'invoices.invoice_amount',
+                'transactions'              => 'general.incomes',
+            ],
+            'category_type'         => Category::INCOME_TYPE,
+            'contact_type'          => Contact::CUSTOMER_TYPE,
+            'document_type'         => Document::INVOICE_TYPE,
             'split_type'            => Transaction::INCOME_SPLIT_TYPE,
             'email_template'        => 'payment_received_customer',
             'script' => [
@@ -342,6 +400,11 @@ return [
                 'prefix'            => 'transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'transaction', // banking/transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',
@@ -352,8 +415,9 @@ return [
                 'related_document_amount'   => 'invoices.invoice_amount',
                 'transactions'              => 'general.incomes',
             ],
-            'contact_type'          => 'customer',
-            'document_type'         => 'invoice',
+            'category_type'         => Category::INCOME_TYPE,
+            'contact_type'          => Contact::CUSTOMER_TYPE,
+            'document_type'         => Document::INVOICE_TYPE,
             'split_type'            => Transaction::INCOME_SPLIT_TYPE,
             'email_template'        => 'payment_received_customer',
             'script' => [
@@ -368,6 +432,11 @@ return [
                 'prefix'            => 'transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'transaction', // banking/transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',
@@ -378,8 +447,9 @@ return [
                 'related_document_amount'   => 'invoices.invoice_amount',
                 'transactions'              => 'general.incomes',
             ],
-            'contact_type'          => 'customer',
-            'document_type'         => 'invoice',
+            'category_type'         => Category::INCOME_TYPE,
+            'contact_type'          => Contact::CUSTOMER_TYPE,
+            'document_type'         => Document::INVOICE_TYPE,
             'email_template'        => 'payment_received_customer',
             'script' => [
                 'folder'            => 'banking',
@@ -393,6 +463,11 @@ return [
                 'prefix'            => 'recurring-transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'recurring_transaction', // banking/recurring-transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',
@@ -421,6 +496,11 @@ return [
                 'prefix'            => 'transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'transaction', // banking/transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',
@@ -430,8 +510,9 @@ return [
                 'prefix'                    => 'transactions', // this translation file name.
                 'related_document_amount'   => 'bills.bill_amount',
             ],
-            'contact_type'          => 'vendor',
-            'document_type'         => 'bill',
+            'category_type'         => Category::EXPENSE_TYPE,
+            'contact_type'          => Contact::VENDOR_TYPE,
+            'document_type'         => Document::BILL_TYPE,
             'split_type'            => Transaction::EXPENSE_SPLIT_TYPE,
             'email_template'        => 'payment_made_vendor',
             'script' => [
@@ -446,6 +527,11 @@ return [
                 'prefix'            => 'transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'transaction', // banking/transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',
@@ -455,8 +541,9 @@ return [
                 'prefix'                    => 'transactions', // this translation file name.
                 'related_document_amount'   => 'bills.bill_amount',
             ],
-            'contact_type'          => 'vendor',
-            'document_type'         => 'bill',
+            'category_type'         => Category::EXPENSE_TYPE,
+            'contact_type'          => Contact::VENDOR_TYPE,
+            'document_type'         => Document::BILL_TYPE,
             'split_type'            => Transaction::EXPENSE_SPLIT_TYPE,
             'email_template'        => 'payment_made_vendor',
             'script' => [
@@ -471,6 +558,11 @@ return [
                 'prefix'            => 'transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'transaction', // banking/transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',
@@ -480,8 +572,9 @@ return [
                 'prefix'                    => 'transactions', // this translation file name.
                 'related_document_amount'   => 'bills.bill_amount',
             ],
-            'contact_type'          => 'vendor',
-            'document_type'         => 'bill',
+            'category_type'         => Category::EXPENSE_TYPE,
+            'contact_type'          => Contact::VENDOR_TYPE,
+            'document_type'         => Document::BILL_TYPE,
             'email_template'        => 'payment_made_vendor',
             'script' => [
                 'folder'            => 'banking',
@@ -495,6 +588,11 @@ return [
                 'prefix'            => 'recurring-transactions', // core use with group + prefix, module ex. estimates
                 'parameter'         => 'recurring_transaction', // banking/recurring-transactions/{parameter}/edit
                 //'create'          => 'transactions.create', // if you change route, you can write full path
+                'params' => [
+                    'income'        => ['search' => 'type:income'],
+                    'expense'       => ['search' => 'type:expense'],
+                    'all'           => ['list_records' => 'all'],
+                ],
             ],
             'permission' => [
                 'prefix'            => 'transactions',

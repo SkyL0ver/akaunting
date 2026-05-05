@@ -198,13 +198,13 @@ export default {
                 try {
                     item.querySelectorAll('[data-tabs-slide]').forEach((slide, index, arr) => {
                         loop += slide.clientWidth;
-    
+
                         slide.classList.add('swiper-slide');
-        
+
                         if (slide.getAttribute('data-tabs') == hash_split) {
                             initial_slide = index;
                         }
-    
+
                         if (loop > item.clientWidth) {
                             slides_view = index;
                             throw BreakException;
@@ -213,27 +213,27 @@ export default {
                 } catch (e) {
                     if (e !== BreakException) throw e;
                 }
-                
+
                 item.querySelector('[data-tabs-swiper]').classList.add('swiper', 'swiper-links');
                 item.querySelector('[data-tabs-swiper-wrapper]').classList.add('swiper-wrapper');
-    
+
                 let html = `
                     <div class="swiper-tabs-container">
                         ${item.querySelector('[data-tabs-swiper]').innerHTML}
                     </div>
-    
+
                     <div class="swiper-button-next bg-body text-white flex items-center justify-center right-0">
                         <span class="material-icons text-purple text-4xl">chevron_right</span>
                     </div>
                     <div class="swiper-button-prev bg-body text-white flex items-center justify-center left-0">
                         <span class="material-icons text-purple text-4xl">chevron_left</span>
                     </div>
-                    `; 
-    
+                    `;
+
                 item.querySelector('[data-tabs-swiper]').innerHTML = html;
                 slides_view = Number(item.getAttribute('data-swiper')) != 0 ? Number(item.getAttribute('data-swiper'))  : slides_view;
                 item.setAttribute('data-swiper', slides_view);
-                                
+
                 new Swiper(item.querySelector('.swiper-tabs-container'), {
                     loop: true,
                     slidesPerView: slides_view,
@@ -251,7 +251,7 @@ export default {
                 item.removeAttribute('data-swiper');
                 item.querySelector('[data-tabs-swiper]').removeAttribute('data-tabs-swiper');
                 item.querySelector('[data-tabs-swiper-wrapper]').removeAttribute('data-tabs-swiper-wrapper');
-    
+
                 item.querySelectorAll('[data-tabs-slide]').forEach((slide) => {
                     slide.removeAttribute('data-tabs-slide');
                 });
@@ -299,6 +299,28 @@ export default {
         onHandleFileUpload(key, event) {
             this.form[key] = '';
             this.form[key] = event.target.files[0];
+        },
+
+        isCategoryCodeFieldVisible() {
+            if (!this.form || !this.form.type || !this.form.type_codes) {
+                return false;
+            }
+
+            let type_codes = this.form.type_codes;
+
+            if (typeof type_codes === 'string') {
+                try {
+                    type_codes = JSON.parse(type_codes);
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            if (typeof type_codes[this.form.type] === 'undefined') {
+                return true;
+            }
+
+            return !Boolean(type_codes[this.form.type]);
         },
 
         // Bulk Action Select all
@@ -468,6 +490,16 @@ export default {
                     }
                 }, this);
             }
+        },
+
+        onChangeContact(contact) {
+            if (!contact || !contact.category_id || !this.form) {
+                return;
+            }
+
+            this.form.category_id = contact.category_id;
+
+            this.$forceUpdate();
         },
 
         // Pages limit change
@@ -843,9 +875,10 @@ export default {
             let currency_code = (contact.currency_code) ? contact.currency_code : this.form.currency_code;
 
             this.onChangeCurrency(currency_code);
+            this.onChangeContact(contact);
 
             this.$forceUpdate();
-        },
+    },
 
         async onAddPayment(url) {
             let payment = {
@@ -945,15 +978,19 @@ export default {
                                 let data = this.form.data();
 
                                 FormData.prototype.appendRecursive = function(data, wrapper = null) {
-                                    for(var name in data) {
+                                    for (var name in data) {
+                                        if (name == "previewElement" || name == "previewTemplate") {
+                                            continue;
+                                        }
+
                                         if (wrapper) {
-                                            if ((typeof data[name] == 'object' || data[name].constructor === Array) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
+                                            if ((typeof data[name] == 'object' || Array.isArray(data[name])) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
                                                 this.appendRecursive(data[name], wrapper + '[' + name + ']');
                                             } else {
                                                 this.append(wrapper + '[' + name + ']', data[name]);
                                             }
                                         } else {
-                                            if ((typeof data[name] == 'object' || data[name].constructor === Array) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
+                                            if ((typeof data[name] == 'object' || Array.isArray(data[name])) && ((data[name] instanceof File != true ) && (data[name] instanceof Blob != true))) {
                                                 this.appendRecursive(data[name], name);
                                             } else {
                                                 this.append(name, data[name]);
@@ -1001,7 +1038,7 @@ export default {
 
                             onSubmitViaSendEmail(event) {
                                 event['sendtransaction'] = true;
-                    
+
                                 this.onSubmit(event);
                             },
 
@@ -1083,7 +1120,7 @@ export default {
                             // Parent vue instance methods merge with child vue instance methods
                             if (this.$root.$options.methods) {
                                 let parent_methods = this.$root.$options.methods;
-    
+
                                 for (let method_key in parent_methods) {
                                     if (this.$options.methods[method_key] === undefined) {
                                         this[method_key] = parent_methods[method_key];
@@ -1094,7 +1131,7 @@ export default {
                             // Parent vue instance data merge with child vue instance data
                             if (this.$root._data) {
                                 let parent_data = this.$root._data;
-    
+
                                 for (let data_key in parent_data) {
                                     if (this[data_key] === undefined) {
                                         this[data_key] = parent_data[data_key];
@@ -1263,7 +1300,7 @@ export default {
                             // Parent vue instance methods merge with child vue instance methods
                             if (this.$root.$options.methods) {
                                 let parent_methods = this.$root.$options.methods;
-    
+
                                 for (let method_key in parent_methods) {
                                     if (this.$options.methods[method_key] === undefined) {
                                         this[method_key] = parent_methods[method_key];
@@ -1335,7 +1372,7 @@ export default {
                             // Parent vue instance methods merge with child vue instance methods
                             if (this.$root.$options.methods) {
                                 let parent_methods = this.$root.$options.methods;
-    
+
                                 for (let method_key in parent_methods) {
                                     if (this.$options.methods[method_key] === undefined) {
                                         this[method_key] = parent_methods[method_key];
@@ -1496,7 +1533,7 @@ export default {
                                 // Parent vue instance methods merge with child vue instance methods
                                 if (this.$root.$options.methods) {
                                     let parent_methods = this.$root.$options.methods;
-        
+
                                     for (let method_key in parent_methods) {
                                         if (this.$options.methods[method_key] === undefined) {
                                             this[method_key] = parent_methods[method_key];
@@ -1583,7 +1620,7 @@ export default {
                             return;
                         }
                     }, this);
-                }   
+                }
 
                 this.$notify({
                     verticalAlign: 'bottom',

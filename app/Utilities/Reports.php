@@ -2,6 +2,7 @@
 
 namespace App\Utilities;
 
+use App\Events\Report\ClassesCreated as ReportClassesCreated;
 use App\Models\Common\Report;
 use App\Models\Module\Module;
 use App\Traits\Modules;
@@ -21,6 +22,7 @@ class Reports
             'App\Reports\IncomeExpenseSummary',
             'App\Reports\TaxSummary',
             'App\Reports\ProfitLoss',
+            'App\Reports\DiscountSummary',
         ];
 
         Module::enabled()->each(function ($module) use (&$list) {
@@ -32,6 +34,13 @@ class Reports
 
             $list = array_merge($list, (array) $m->get('reports'));
         });
+
+        // Added New Event
+        $report_classes = collect($list);
+
+        event(new ReportClassesCreated($report_classes));
+
+        $list = $report_classes->all();
 
         foreach ($list as $class) {
             if (! class_exists($class) || ($check_permission && static::cannotRead($class))) {
@@ -114,11 +123,13 @@ class Reports
             return true;
         }
 
-        if (module_is_enabled($alias)) {
-            return true;
+        static $cache = [];
+
+        if (! array_key_exists($alias, $cache)) {
+            $cache[$alias] = module_is_enabled($alias);
         }
 
-        return false;
+        return $cache[$alias];
     }
 
     public static function isModuleDisabled($class)

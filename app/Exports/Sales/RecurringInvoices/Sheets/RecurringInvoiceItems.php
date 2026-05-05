@@ -4,8 +4,9 @@ namespace App\Exports\Sales\RecurringInvoices\Sheets;
 
 use App\Abstracts\Export;
 use App\Models\Document\DocumentItem as Model;
+use App\Interfaces\Export\WithParentSheet;
 
-class RecurringInvoiceItems extends Export
+class RecurringInvoiceItems extends Export implements WithParentSheet
 {
     public function collection()
     {
@@ -36,6 +37,8 @@ class RecurringInvoiceItems extends Export
             'item_description',
             'item_type',
             'quantity',
+            'discount_type',
+            'discount_rate',
             'price',
             'total',
             'tax',

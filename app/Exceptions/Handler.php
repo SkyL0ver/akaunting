@@ -13,7 +13,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\ViewException;
-use Symfony\Component\Debug\Exception\FatalThrowableError;
+use Symfony\Component\ErrorHandler\Error\FatalError;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Mailer\Exception\HttpTransportException as MailerHttpTransportException;
@@ -60,6 +60,10 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             if (config('logging.default') == 'bugsnag') {
                 call_user_func(config('bugsnag.before_send'), $e);
+            }
+
+            if (config('app.error_tracker') === 'sentry') {
+                \Sentry\Laravel\Integration::captureUnhandledException($e);
             }
         });
     }
@@ -116,9 +120,9 @@ class Handler extends ExceptionHandler
      */
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        // Store the current url in the session
-        if ($request->url() !== config('app.url')) {
-            session(['url.intended' => $request->url()]);
+        // Store the current url in the session (fullUrl includes query string)
+        if ($request->fullUrl() !== config('app.url')) {
+            session(['url.intended' => $request->fullUrl()]);
         }
 
         return $request->expectsJson()
@@ -167,7 +171,7 @@ class Handler extends ExceptionHandler
             }
         }
 
-        if ($exception instanceof FatalThrowableError) {
+        if ($exception instanceof FatalError) {
             // ajax 500 json feedback
             if ($request->ajax()) {
                 return response()->json([

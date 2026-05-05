@@ -10,8 +10,20 @@ class Customers extends Import
 {
     public $request_class = Request::class;
 
+    public $model = Model::class;
+
+    public $columns = [
+        'type',
+        'name',
+        'email',
+    ];
+
     public function model(array $row)
     {
+        if (self::hasRow($row)) {
+            return;
+        }
+
         return new Model($row);
     }
 
@@ -23,6 +35,7 @@ class Customers extends Import
 
         $row['type'] = 'customer';
         $row['country'] = !empty($country) ? $country : null;
+        $row['category_id'] = $this->getCategoryId($row, 'income');
         $row['currency_code'] = $this->getCurrencyCode($row);
         $row['user_id'] = null;
 

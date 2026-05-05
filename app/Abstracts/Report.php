@@ -40,6 +40,8 @@ abstract class Report
 
     public $has_money = true;
 
+    public $group;
+
     public $groups = [];
 
     public $year;
@@ -219,7 +221,7 @@ abstract class Report
         $total = array_sum($tmp_values);
         $total = !empty($total) ? $total : 1;
 
-        $group = $this->getSetting('group');
+        $group = $this->getGroup();
 
         $labels = $colors = $values = [];
 
@@ -251,17 +253,52 @@ abstract class Report
 
     public function show()
     {
-        return view($this->views['show'])->with('class', $this);
+        return view($this->views['show'], ['print' => false])->with('class', $this);
     }
 
     public function print()
     {
-        return view($this->views['print'])->with('class', $this);
+        return view($this->views['print'], ['print' => true])->with('class', $this);
+    }
+
+    public function array(): array
+    {
+        $data = [];
+
+        $group = Str::plural($this->group ?? $this->getGroup());
+
+        foreach ($this->tables as $table_key => $table_name) {
+            if (! isset($this->row_values[$table_key])) {
+                continue;
+            }
+
+            foreach ($this->row_values[$table_key] as $key => $values) {
+                if (empty($this->row_names[$table_key][$key])) {
+                    continue;
+                }
+
+                if ($this->has_money) {
+                    $values = array_map(fn($value) => money($value)->format(), $values);
+                }
+
+                $data[$table_key][$group][$this->row_names[$table_key][$key]] = $values;
+            }
+
+            $footer_totals = $this->footer_totals[$table_key];
+
+            if ($this->has_money) {
+                $footer_totals = array_map(fn($value) => money($value)->format(), $footer_totals);
+            }
+
+            $data[$table_key]['totals'] = $footer_totals;
+        }
+
+        return $data;
     }
 
     public function pdf()
     {
-        $view = view($this->views['print'])->with('class', $this)->render();
+        $view = view($this->views['print'], ['print' => true])->with('class', $this)->render();
 
         $html = mb_convert_encoding($view, 'HTML-ENTITIES', 'UTF-8');
 
@@ -419,7 +456,7 @@ abstract class Report
     {
         event(new TotalCalculating($this, $items, $date_field, $check_type, $table, $with_tax));
 
-        $group_field = $this->getSetting('group') . '_id';
+        $group_field = $this->getGroup() . '_id';
 
         foreach ($items as $item) {
             // Make groups extensible
@@ -461,7 +498,7 @@ abstract class Report
 
     public function setArithmeticTotals($items, $date_field, $operator = 'add', $table = 'default', $amount_field = 'amount')
     {
-        $group_field = $this->getSetting('group') . '_id';
+        $group_field = $this->getGroup() . '_id';
 
         $function = $operator . 'ArithmeticAmount';
 
@@ -509,11 +546,19 @@ abstract class Report
 
     public function divArithmeticAmount(&$current, $amount)
     {
+        if ($amount == 0) {
+            throw new \InvalidArgumentException('Division by zero is not allowed');
+        }
+
         $current = $current / $amount;
     }
 
     public function modArithmeticAmount(&$current, $amount)
     {
+        if ($amount == 0) {
+            throw new \InvalidArgumentException('Modulo by zero is not allowed');
+        }
+
         $current = $current % $amount;
     }
 
@@ -551,7 +596,6 @@ abstract class Report
             $url .= $parameters;
         }
 
-
         return $url;
     }
 
@@ -562,12 +606,22 @@ abstract class Report
 
     public function getBasis()
     {
-        return $this->getSearchStringValue('basis', $this->getSetting('basis'));
+        return $this->getSearchStringValue('basis', $this->getSetting('basis', $this->getDefaultFieldSelection($this->getBasisField())));
     }
 
     public function getPeriod()
     {
-        return $this->getSearchStringValue('period', $this->getSetting('period'));
+        return $this->getSearchStringValue('period', $this->getSetting('period', $this->getDefaultFieldSelection($this->getPeriodField())));
+    }
+
+    public function getGroup()
+    {
+        return $this->getSearchStringValue('group', $this->getSetting('group', $this->getDefaultFieldSelection($this->getGroupField())));
+    }
+
+    public function getDiscount()
+    {
+        return $this->getSearchStringValue('discount');
     }
 
     public function getFields()
@@ -594,6 +648,11 @@ abstract class Report
                 'required' => 'required',
             ],
         ];
+    }
+
+    protected function getDefaultFieldSelection(array $field, string $fallback = ''): string
+    {
+        return $field['selected'] ?? $fallback;
     }
 
     public function getPeriodField()

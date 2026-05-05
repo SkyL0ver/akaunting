@@ -7,6 +7,8 @@
     </x-slot>
 
     <x-slot name="body" class="block" override="class">
+        @stack('timeline_make_payment_body_start')
+
         <div class="flex flex-wrap space-x-3 rtl:space-x-reverse">
             @stack('timeline_get_paid_body_button_payment_start')
 
@@ -40,18 +42,23 @@
             @stack('timeline_get_paid_body_button_payment_end')
         </div>
 
-        <div class="text-xs mt-6" style="margin-left: 0 !important;">
+        @stack('timeline_make_payment_body_detail_start')
+
+        <div class="text-xs mt-6" style="margin-inline-start: 0 !important;">
             <span class="font-medium">
                 {{ trans('bills.payment_made') }} :
             </span>
+
+            @stack('timeline_make_payment_body_detail_description_start')
 
             @if ($transactions->count())
                 @foreach ($transactions as $transaction)
                     <div class="my-4">
                         <span>
                             <x-date :date="$transaction->paid_at" />
-                             - {!! trans('documents.transaction', [
+                             - {!! trans($text_document_transaction, [
                                  'amount' => '<span class="font-medium">' . money($transaction->amount, $transaction->currency_code) . '</span>',
+                                 'payment_method' => '<span class="font-medium">' . $transaction->payment_method_title . '</span>',
                                  'account' => '<span class="font-medium">' . $transaction->account->name . '</span>',
                              ]) !!}
                         </span>
@@ -125,6 +132,10 @@
                     <span>{{ trans('general.no_records') }}</span>
                 </div>
             @endif
+
+            @stack('timeline_make_payment_body_detail_description_end')
         </div>
+
+        @stack('timeline_make_payment_body_end')
     </x-slot>
 </x-show.accordion>

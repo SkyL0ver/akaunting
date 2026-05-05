@@ -10,6 +10,7 @@ use App\Traits\Documents;
 use App\Traits\Transactions;
 use App\Scopes\Contact as Scope;
 use App\Models\Document\Document;
+use App\Models\Setting\Category;
 use App\Utilities\Date;
 use App\Utilities\Str;
 use Bkwld\Cloner\Cloneable;
@@ -50,6 +51,7 @@ class Contact extends Model
         'type',
         'name',
         'email',
+        'category_id',
         'user_id',
         'tax_number',
         'phone',
@@ -138,6 +140,11 @@ class Contact extends Model
         return $this->belongsTo('App\Models\Setting\Currency', 'currency_code', 'code');
     }
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class)->withoutGlobalScope('App\Scopes\Category')->withDefault(['name' => trans('general.na')]);
+    }
+
     public function expense_transactions()
     {
         return $this->transactions()->whereIn('transactions.type', (array) $this->getExpenseTypes());
@@ -162,7 +169,9 @@ class Contact extends Model
     {
         $contacts = collect();
 
-        $contacts->push($this);
+        if (! empty($this->email)) {
+            $contacts->push($this);
+        }
 
         $contact_persons = $this->contact_persons()->whereNotNull('email')->get();
 
@@ -296,12 +305,16 @@ class Contact extends Model
 
         return $amount;
     }
-    
+
     public function getHasEmailAttribute()
     {
         if (! empty($this->email)) {
             return true;
-        } 
+        }
+
+        if (isset($this->contact_persons_with_email_count)) {
+            return $this->contact_persons_with_email_count > 0;
+        }
 
         if ($this->contact_persons()->whereNotNull('email')->count()) {
             return true;
@@ -312,25 +325,11 @@ class Contact extends Model
 
     public function getLocationAttribute()
     {
-        $location = [];
-
-        if ($this->city) {
-            $location[] = $this->city;
-        }
-
-        if ($this->state) {
-            $location[] = $this->state;
-        }
-
-        if ($this->zip_code) {
-            $location[] = $this->zip_code;
-        }
-
         if ($this->country && array_key_exists($this->country, trans('countries'))) {
-            $location[] = trans('countries.' . $this->country);
+            $country = trans('countries.' . $this->country);
         }
 
-        return implode(', ', $location);
+        return $this->getFormattedAddress($this->city, $country ?? null, $this->state, $this->zip_code);
     }
 
     /**

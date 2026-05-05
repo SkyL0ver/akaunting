@@ -21,13 +21,19 @@
                                     </button>
                                 </slot>
                             </div>
+
+                            <div v-if="transaction && transaction.taxes.length" class="rounded-xl px-5 py-3 mt-4 bg-orange-100">
+                                <p class="text-sm mb-0 text-orange-600">
+                                    {{ translations.connect_tax }}
+                                </p>
+                            </div>
                         </div>
 
                         <slot name="modal-body">
                             <div class="px-5">
                                 <template v-if="transaction">
                                     <div class="flex flex-col items-start gap-y-3">
-                                        <div class="text-left text-sm">
+                                        <div class="ltr:text-left rtl:text-right text-sm">
                                             <div class="font-medium">
                                                 {{ translations.contact }}
                                             </div>
@@ -37,7 +43,7 @@
                                             </span>
                                         </div>
 
-                                        <div class="text-left text-sm">
+                                        <div class="ltr:text-left rtl:text-right text-sm">
                                             <div class="font-medium">
                                                 {{ translations.category }}
                                             </div>
@@ -47,7 +53,7 @@
                                             </span>
                                         </div>
 
-                                        <div class="text-left text-sm">
+                                        <div class="ltr:text-left rtl:text-right text-sm">
                                             <div class="font-medium">
                                                 {{ translations.account }}
                                             </div>
@@ -62,10 +68,10 @@
                                 <div class="relative sm:col-span-6 pt-3">
                                     <div style="table-layout: fixed;">
                                         <div class="overflow-x-visible overflow-y-hidden">
-                                            <table class="w-full" id="items" style="table-layout: fixed">
+                                            <table class="w-full" :id="'items-' + _uid" style="table-layout: fixed">
                                                 <thead class="border-b">
                                                     <tr>
-                                                        <th colspan="3" class="w-12/12 px-0 text-left border-t-0 border-r-0 border-b-0">
+                                                        <th colspan="3" class="w-12/12 px-0 ltr:text-left rtl:text-right border-t-0 ltr:border-r-0 rtl:border-l-0 border-b-0">
                                                             {{ translations.document }}
                                                         </th>
                                                     </tr>
@@ -78,7 +84,7 @@
 
                                                 <tbody>
                                                     <tr v-for="(row, index) in form.items" :index="index" class="border-b border-gray-200">
-                                                        <td class="px-0 border-r-0 border-b-0 truncate">
+                                                        <td class="px-0 ltr:border-r-0 rtl:border-l-0 border-b-0 truncate">
                                                             <div class="text-sm">
                                                                 <div class="truncate">
                                                                     <b>{{ translations.number }}:</b> {{ row.number }}
@@ -107,7 +113,7 @@
                                                                     :dynamic-currency="currency"
                                                                     :value="row.amount"
                                                                     :row-input="true"
-                                                                    :money-class="'text-right input-price'"
+                                                                    :money-class="'ltr:text-right rtl:text-left input-price'"
                                                                     @input="checkAmount(index, $event)"
                                                                 ></akaunting-money>
 
@@ -124,7 +130,7 @@
                                                                     :disabled="true"
                                                                 ></akaunting-money>
 
-                                                                <div class="pl-2 group">
+                                                                <div class="ltr:pl-2 rtl:pr-2 group">
                                                                     <button type="button" @click="onDeleteItem(index)" class="w-6 h-7 flex items-center rounded-lg p-0 group-hover:bg-gray-100">
                                                                         <span class="w-full material-icons-outlined text-lg text-gray-300 group-hover:text-gray-500">delete</span>
                                                                     </button>
@@ -133,7 +139,7 @@
                                                         </td>
                                                     </tr>
 
-                                                    <tr id="addItem">
+                                                    <tr :id="'addItem-' + _uid">
                                                         <td colspan="3" class="w-12/12 p-0">
                                                             <akaunting-document-button
                                                                 :items="documents"
@@ -154,21 +160,21 @@
 
                                 <div class="sm:col-span-6">
                                     <div class="overflow-y-hidden py-5">
-                                        <table id="totals" class="float-right">
+                                        <table :id="'totals-' + _uid" class="ltr:float-right rtl:float-left">
                                             <colgroup>
                                                 <col style="width: 51.5%;">
                                                 <col style="width: 30%;">
                                                 <col style="width: 18.5%;">
                                             </colgroup>
-                                            <tbody id="document-total-rows">
-                                                <tr id="tr-total">
+                                            <tbody :id="'document-total-rows-' + _uid">
+                                                <tr :id="'tr-total-' + _uid">
                                                     <td class="border-t-0 p-0"></td>
 
-                                                    <td class="font-medium text-sm text-right border-r-0 border-b-0 align-middle py-0 pr-0">
+                                                    <td class="font-medium text-sm ltr:text-right rtl:text-left ltr:border-r-0 rtl:border-l-0 border-b-0 align-middle py-0 ltr:pr-0 rtl:pl-0">
                                                         {{ translations.total }}
                                                     </td>
 
-                                                    <td class="text-sm text-right border-b-0 p-0">
+                                                    <td class="text-sm ltr:text-right rtl:text-left border-b-0 p-0">
                                                         <div>
                                                             <money
                                                                 name="total_amount"
@@ -176,21 +182,21 @@
                                                                 v-bind="money"
                                                                 masked
                                                                 disabled
-                                                                class="px-0 disabled-money text-right banking-price-text"
+                                                                class="px-0 disabled-money ltr:text-right rtl:text-left banking-price-text"
                                                                 style="height: unset;"
                                                             ></money>
                                                         </div>
                                                     </td>
                                                 </tr>
 
-                                                <tr id="tr-transaction-amount">
+                                                <tr :id="'tr-transaction-amount-' + _uid">
                                                     <td class="border-t-0 p-0"></td>
 
-                                                    <td class="font-medium text-sm text-right border-r-0 border-b-0 align-middle py-0 pr-0">
+                                                    <td class="font-medium text-sm ltr:text-right rtl:text-left ltr:border-r-0 rtl:border-l-0 border-b-0 align-middle py-0 ltr:pr-0 rtl:pl-0">
                                                         {{ translations.transaction + ' ' + translations.amount }}
                                                     </td>
 
-                                                    <td class="text-sm text-right border-b-0 p-0">
+                                                    <td class="text-sm ltr:text-right rtl:text-left border-b-0 p-0">
                                                         <div>
                                                             <money
                                                                 :name="'transaction_amount'"
@@ -198,11 +204,12 @@
                                                                 v-bind="money"
                                                                 masked
                                                                 disabled
-                                                                class="px-0 disabled-money text-right banking-price-text"
+                                                                class="px-0 disabled-money ltr:text-right rtl:text-left banking-price-text"
                                                                 style="height: unset;"
                                                                 v-if="transaction"
                                                             ></money>
                                                         </div>
+
                                                         <akaunting-money
                                                             class="hidden"
                                                             :masked="true"
@@ -219,14 +226,14 @@
                                                     </td>
                                                 </tr>
 
-                                                <tr id="tr-difference">
+                                                <tr :id="'tr-difference-' + _uid">
                                                     <td class="border-t-0 p-0"></td>
 
-                                                    <td class="font-medium text-sm text-right border-r-0 border-b-0 align-middle py-0 pr-0">
+                                                    <td class="font-medium text-sm ltr:text-right rtl:text-left ltr:border-r-0 rtl:border-l-0 border-b-0 align-middle py-0 ltr:pr-0 rtl:pl-0">
                                                         {{ translations.difference }}
                                                     </td>
 
-                                                    <td class="text-right text-sm border-b-0 p-0">
+                                                    <td class="ltr:text-right rtl:text-left text-sm border-b-0 p-0">
                                                         <div>
                                                             <money
                                                                 name="difference_amount"
@@ -234,7 +241,7 @@
                                                                 v-bind="money"
                                                                 masked
                                                                 disabled
-                                                                class="px-0 disabled-money text-right banking-price-text"
+                                                                class="px-0 disabled-money ltr:text-right rtl:text-left banking-price-text"
                                                                 style="height: unset;"
                                                             ></money>
                                                         </div>
@@ -250,12 +257,12 @@
                         <div class="p-5 border-gray-300">
                             <slot name="card-footer">
                                 <div class="flex items-center justify-end">
-                                    <button type="button" class="px-6 py-1.5 mr-2 hover:bg-gray-200 rounded-lg" @click="onCancel">
+                                    <button type="button" class="px-6 py-1.5 ltr:mr-2 rtl:ml-2 hover:bg-gray-200 rounded-lg" @click="onCancel">
                                         {{ translations.cancel }}
                                     </button>
 
                                     <button type="button"
-                                        :disabled="differenceAmount != 0 || (differenceAmount == 0 && form.loading)"
+                                        :disabled="!canConfirmConnect"
                                         class="relative px-6 py-1.5 bg-green hover:bg-green-700 text-white rounded-lg disabled:bg-green-100"
                                         @click="onConfirm"
                                     >
@@ -264,7 +271,7 @@
                                             class="animate-submit delay-[0.28s] absolute w-2 h-2 rounded-full left-0 right-0 -top-3.5 m-auto before:absolute before:w-2 before:h-2 before:rounded-full before:animate-submit before:delay-[0.14s] after:absolute after:w-2 after:h-2 after:rounded-full after:animate-submit before:-left-3.5 after:-right-3.5 after:delay-[0.42s]"
                                         >
                                         </i>
-                                        <span :class="[{'opacity-0': differenceAmount != 0}]">{{ translations.save }}</span>
+                                        <span :class="[{'opacity-0': !canConfirmConnect && !form.loading}]">{{ translations.save }}</span>
                                     </button>
                                 </div>
                             </slot>
@@ -344,7 +351,7 @@ export default {
         },
 
         difference_amount: function () {
-            if (! this.transaction_amount) {
+            if (this.transaction_amount === '' || this.transaction_amount === null || this.transaction_amount === undefined) {
                 this.differenceAmount = 0;
 
                 return 0;
@@ -353,9 +360,27 @@ export default {
             let transaction_amount = this.convertMoneyToFloat(this.transaction_amount);
             let amount = parseFloat((this.total_amount - transaction_amount).toFixed(this.currency.precision));
 
+            if (isNaN(amount)) {
+                amount = 0;
+            }
+
             this.differenceAmount = amount;
 
             return amount;
+        },
+
+        canConfirmConnect: function () {
+            if (this.form.loading || !this.form.items.length) {
+                return false;
+            }
+
+            if (this.transaction_amount === '' || this.transaction_amount === null || this.transaction_amount === undefined) {
+                return false;
+            }
+
+            const diff = this.difference_amount;
+
+            return Math.abs(diff) < Math.pow(10, -(this.currency.precision || 2));
         }
     },
 
@@ -419,21 +444,57 @@ export default {
         },
 
         convertMoneyToFloat(money) {
-            // "$198.4"
-            if (typeof(money) != "string") {
-                money = money.toString();
+            if (money === null || money === undefined || money === '') {
+                return 0;
             }
 
-            // 198.4
-            let regex = new RegExp(this.currency.thousands_separator, 'gi');
+            if (typeof money === 'number') {
+                return isNaN(money) ? 0 : parseFloat(money.toFixed(this.currency.precision));
+            }
 
-            money = money.replace(this.currency.symbol, '').replace(regex, '').replace(this.currency.decimal_mark, '.');
+            let value = String(money).trim();
+            const symbol = this.currency.symbol || '';
 
-            // "198.40"
-            money = parseFloat(money).toFixed(this.currency.precision);
+            if (symbol) {
+                value = value.split(symbol).join('');
+            }
 
-            // 198.40
-            return parseFloat(money);
+            value = value.replace(/\u00a0/g, '').trim();
+
+            const decimalMark = this.currency.decimal_mark;
+            const thousandsSeparator = this.currency.thousands_separator;
+
+            let normalized = '';
+
+            if (decimalMark === ',' && value.includes(',')) {
+                const index = value.lastIndexOf(',');
+                let whole = value.slice(0, index);
+                const fractional = value.slice(index + 1).replace(/\D/g, '');
+
+                if (thousandsSeparator) {
+                    whole = whole.split(thousandsSeparator).join('');
+                }
+
+                whole = whole.replace(/\D/g, '');
+                normalized = whole + '.' + fractional;
+            } else {
+                let stringValue = value;
+                const jsonDotDecimal = decimalMark === ',' && !stringValue.includes(',') && /\d+\.\d+/.test(stringValue);
+
+                if (thousandsSeparator && !jsonDotDecimal) {
+                    stringValue = stringValue.split(thousandsSeparator).join('');
+                }
+
+                if (decimalMark && decimalMark !== '.' && !jsonDotDecimal) {
+                    stringValue = stringValue.split(decimalMark).join('.');
+                }
+
+                normalized = stringValue.replace(/[^\d.-]/g, '');
+            }
+
+            const parsed = parseFloat(normalized);
+
+            return isNaN(parsed) ? 0 : parseFloat(parsed.toFixed(this.currency.precision));
         },
 
         checkAmount(index, amount) {
@@ -454,11 +515,17 @@ export default {
         show: function (newValue) {
             if (newValue) {
                 this.form.items = [];
+
+                if (this.transaction && this.transaction.amount !== undefined && this.transaction.amount !== null) {
+                    this.transaction_amount = this.transaction.amount;
+                }
             }
         },
 
         transaction: function (transaction) {
-            this.transaction_amount = transaction.amount;
+            if (transaction && transaction.amount !== undefined && transaction.amount !== null) {
+                this.transaction_amount = transaction.amount;
+            }
         },
 
         currency: function (currency) {

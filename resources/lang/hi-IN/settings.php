@@ -79,10 +79,14 @@ return [
         'subheading'                    => 'उपशीर्षक',
         'due_receipt'                   => 'प्राप्ति पर देय',
         'due_days'                      => ':days दिनों के भीतर देय',
+        'due_custom'                    => 'कस्टम दिन',
+        'due_custom_day'                => 'दिन के बाद',
         'choose_template'               => 'चालान टेम्पलेट चुनें',
         'default'                       => 'पूर्व निर्धारित',
         'classic'                       => 'क्लासिक',
         'modern'                        => 'नवीन',
+        'logo_size_width'               => 'लोगो की चौड़ाई',
+        'logo_size_height'              => 'लोगो की ऊँचाई',
         'hide' => [
             'item_name'                 => 'वस्तु का नाम छिपाएं',
             'item_description'          => 'वस्तु का विवरण छिपाएँ',
@@ -113,6 +117,8 @@ return [
         'use_gravatar'                  => 'Gravatar का उपयोग करें',
         'income_category'               => 'आय श्रेणी',
         'expense_category'              => 'व्यय की श्रेणी',
+        'address_format'                => 'पता प्रारूप',
+        'address_tags'                  => '<strong>उपलब्ध टैग:</strong> :tags',
 
         'form_description' => [
             'general'                   => 'तेजी से रिकॉर्ड बनाने के लिए डिफ़ॉल्ट खाता, कर और भुगतान पद्धति का चयन करें। डैशबोर्ड और रिपोर्ट डिफ़ॉल्ट मुद्रा के अंतर्गत दिखाए जाते हैं।',

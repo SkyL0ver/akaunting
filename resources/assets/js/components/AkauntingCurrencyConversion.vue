@@ -12,17 +12,17 @@
             :value="price"
             disabled size="5"
             masked
-            class="disabled-money text-right mr-1 js-conversion-input text-xs px-1"
+            class="disabled-money ltr:text-right rtl:text-left ltr:mr-1 rtl:ml-1 js-conversion-input text-xs px-1"
         ></money>
 
-        <span class="mr-2">
+        <span class="ltr:mr-2 rtl:ml-2">
             {{ texts[1] }}
         </span>
 
         <input name="currency_rate"
             v-model="rate"
             @input="onChange"
-            class="text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple w-16 h-10 text-right js-conversion-input"
+            class="text-sm px-3 py-2.5 mt-1 rounded-lg border border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple w-16 h-10 ltr:text-right rtl:text-left js-conversion-input"
         />
     </div>
 </template>
@@ -48,7 +48,7 @@
                 default: 'sale'
             },
 
-            currecyCode: {
+            currencyCode: {
                 type: String,
                 default: 'USD'
             },
@@ -58,7 +58,7 @@
             },
 
             currencySymbol: {
-            default: {}
+                default: {}
             }
         },
 
@@ -76,7 +76,7 @@
             if (conversion[0]) {
                 this.texts.push(conversion[0]);
             }
-            
+
             if (conversion[1]) {
                 this.texts.push(conversion[1].replace(':currency_code', company_currency_code).replace(':currency_rate', ''));
             }
@@ -92,25 +92,25 @@
 
         watch: {
             currencyConversionText: function (text) {
-                this.conversion = text.replace(':price', this.price).replace(':currency_code', this.currecyCode);
+                this.conversion = text.replace(':price', this.price).replace(':currency_code', this.currencyCode);
             },
 
             price: function (price) {
-                this.conversion = this.currencyConversionText.replace(':price', price).replace(':currency_code', this.currecyCode).replace();
+                this.conversion = this.currencyConversionText.replace(':price', price).replace(':currency_code', this.currencyCode).replace();
             },
 
-            currecyCode: function (currecyCode) {
-                this.conversion = this.currencyConversionText.replace(':price', this.price).replace(':currency_code', this.currecyCode).replace();
+            currencyCode: function (currencyCode) {
+                this.conversion = this.currencyConversionText.replace(':price', this.price).replace(':currency_code', this.currencyCode).replace();
             },
 
             currencyRate: function (currencyRate) {
                 this.rate = currencyRate;
 
-                this.conversion = this.currencyConversionText.replace(':price', this.price).replace(':currency_code', this.currecyCode).replace();
+                this.conversion = this.currencyConversionText.replace(':price', this.price).replace(':currency_code', this.currencyCode).replace();
             },
 
             currencySymbol: function (currencySymbol) {
-                this.conversion = this.currencyConversionText.replace(':price', this.price).replace(':currency_code', this.currecyCode).replace();
+                this.conversion = this.currencyConversionText.replace(':price', this.price).replace(':currency_code', this.currencyCode).replace();
             },
         },
     };

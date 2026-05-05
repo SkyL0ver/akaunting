@@ -44,6 +44,7 @@ return [
     'dimensions' => 'The :attribute has invalid image dimensions.',
     'distinct' => 'The :attribute field has a duplicate value.',
     'doesnt_start_with' => 'The :attribute may not start with one of the following: :values.',
+    'double' => 'The :attribute must be a valid double.',
     'email' => 'The :attribute must be a valid email address.',
     'ends_with' => 'The :attribute must end with one of the following: :values.',
     'enum' => 'The selected :attribute is invalid.',
@@ -65,6 +66,7 @@ return [
     'image' => 'The :attribute must be an image.',
     'in' => 'The selected :attribute is invalid.',
     'in_array' => 'The :attribute field does not exist in :other.',
+    'in_detailed' => 'The :attribute value ":value" is invalid. Expected one of: :values',
     'integer' => 'The :attribute must be an integer.',
     'ip' => 'The :attribute must be a valid IP address.',
     'ipv4' => 'The :attribute must be a valid IPv4 address.',
@@ -154,9 +156,11 @@ return [
         ],
         'invalid_currency'      => 'The :attribute code is invalid.',
         'invalid_amount'        => 'The amount :attribute is invalid.',
+        'invalid_quantity'      => 'The :attribute is not a valid mathematical expression.',
         'invalid_extension'     => 'The file extension is invalid.',
         'invalid_dimension'     => 'The :attribute dimensions must be max :width x :height px.',
         'invalid_colour'        => 'The :attribute colour is invalid.',
+        'invalid_payment_method'=> 'The payment method is invalid.',
     ],
 
     /*

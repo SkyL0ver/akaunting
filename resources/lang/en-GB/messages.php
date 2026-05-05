@@ -4,7 +4,7 @@ return [
 
     'success' => [
         'added'             => ':type added!',
-        'created'			=> ':type created!',
+        'created'            => ':type created!',
         'updated'           => ':type updated!',
         'deleted'           => ':type deleted!',
         'duplicated'        => ':type duplicated!',
@@ -12,6 +12,7 @@ return [
         'import_queued'     => ':type import has been scheduled! You will receive an email when it is finished.',
         'exported'          => ':type exported!',
         'export_queued'     => ':type export of the current page has been scheduled! You will receive an email when it is ready to download.',
+        'download_queued'   => ':type download of the current page has been scheduled! You will receive an email when it is ready to download.',
         'enabled'           => ':type enabled!',
         'disabled'          => ':type disabled!',
         'connected'         => ':type connected!',
@@ -45,6 +46,8 @@ return [
         'disable_code'      => 'Warning: You are not allowed to disable or change the currency of <b>:name</b> because it has :text related.',
         'payment_cancel'    => 'Warning: You have cancelled your recent :method payment!',
         'missing_transfer'  => 'Warning: The transfer related to this transaction is missing. You should consider deleting this transaction.',
+        'connect_tax'       => 'Warning: This :type has a tax amount. Taxes added to the :type can not be connected, so the tax will be added to the total and calculated accordingly.',
+        'contact_change'    => 'Warning: You are not allowed to change the contact on a :type that has already been sent, received, or paid!',
     ],
 
 ];

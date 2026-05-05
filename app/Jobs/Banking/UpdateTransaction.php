@@ -18,7 +18,12 @@ class UpdateTransaction extends Job implements ShouldUpdate
         event(new TransactionUpdating($this->model, $this->request));
 
         if (! array_key_exists($this->request->get('type'), config('type.transaction'))) {
-            $type = (empty($this->request->get('recurring_frequency')) || ($this->request->get('recurring_frequency') == 'no')) ? Transaction::INCOME_TYPE : Transaction::INCOME_RECURRING_TYPE;
+            $isExpense = str_contains((string) $this->request->get('type', ''), 'expense');
+            $isRecurring = ! empty($this->request->get('recurring_frequency')) && $this->request->get('recurring_frequency') !== 'no';
+
+            $type = $isExpense
+                ? ($isRecurring ? Transaction::EXPENSE_RECURRING_TYPE : Transaction::EXPENSE_TYPE)
+                : ($isRecurring ? Transaction::INCOME_RECURRING_TYPE : Transaction::INCOME_TYPE);
 
             $this->request->merge(['type' => $type]);
         }
@@ -35,7 +40,9 @@ class UpdateTransaction extends Job implements ShouldUpdate
 
                     $this->model->attachMedia($media, 'attachment');
                 }
-            } elseif (! $this->request->file('attachment') && $this->model->attachment) {
+            } elseif ($this->request->isNotApi() && ! $this->request->file('attachment') && $this->model->attachment) {
+                $this->deleteMediaModel($this->model, 'attachment', $this->request);
+            } elseif ($this->request->isApi() && $this->request->has('remove_attachment') && $this->model->attachment) {
                 $this->deleteMediaModel($this->model, 'attachment', $this->request);
             }
 
@@ -64,7 +71,7 @@ class UpdateTransaction extends Job implements ShouldUpdate
         }
 
         if ($this->model->isTransferTransaction()) {
-            throw new \Exception('Unauthorized');
+            throw new \Exception(trans('messages.error.transfer_transaction'));
         }
     }
 }

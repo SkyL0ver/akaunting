@@ -13,8 +13,22 @@ class BillItemTaxes extends Import
 {
     public $request_class = Request::class;
 
+    public $model = Model::class;
+
+    public $columns = [
+        'type',
+        'document_id',
+        'tax_id',
+        'name',
+        'amount'
+    ];
+
     public function model(array $row)
     {
+        if (self::hasRow($row)) {
+            return;
+        }
+        
         return new Model($row);
     }
 
@@ -30,6 +44,10 @@ class BillItemTaxes extends Import
 
         $document = Document::with('items')->bill()->number($row['bill_number'])->first();
 
+        if (! $document) {
+            return [];
+        }
+
         $row['document_id'] = (int) $document->id;
 
         if (empty($row['document_item_id']) && !empty($row['item_name'])) {
@@ -37,7 +55,11 @@ class BillItemTaxes extends Import
 
             $item_id = Item::name($row['item_name'])->whereIn('id', $document_items_ids)->pluck('id')->first();
 
-            $row['document_item_id'] = DocumentItem::bill()->where('item_id', $item_id)->pluck('id')->first();
+            $row['document_item_id'] = DocumentItem::bill()
+                ->where('document_id', $row['document_id'])
+                ->where('item_id', $item_id)
+                ->pluck('id')
+                ->first();
         }
 
         $row['tax_id'] = $this->getTaxId($row);

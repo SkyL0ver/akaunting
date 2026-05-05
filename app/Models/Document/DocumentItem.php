@@ -6,8 +6,6 @@ use App\Abstracts\Model;
 use App\Traits\Currencies;
 use Bkwld\Cloner\Cloneable;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DocumentItem extends Model
 {
@@ -22,13 +20,14 @@ class DocumentItem extends Model
      */
     protected $with = ['taxes'];
 
-    protected $appends = ['discount'];
+    protected $appends = ['discount', 'tax_ids'];
 
     protected $fillable = [
         'company_id',
         'type',
         'document_id',
         'item_id',
+        'category_id',
         'name',
         'description',
         'quantity',
@@ -50,6 +49,7 @@ class DocumentItem extends Model
         'price'         => 'double',
         'total'         => 'double',
         'tax'           => 'double',
+        'discount_rate' => 'double',
         'deleted_at'    => 'datetime',
     ];
 
@@ -62,17 +62,7 @@ class DocumentItem extends Model
     {
         parent::boot();
 
-        static::retrieved(
-            function ($model) {
-                $model->setTaxIds();
-            }
-        );
-
-        static::saving(
-            function ($model) {
-                $model->offsetUnset('tax_ids');
-            }
-        );
+        static::saving(fn ($model) => $model->offsetUnset('tax_ids'));
     }
 
     public function document()
@@ -83,6 +73,11 @@ class DocumentItem extends Model
     public function item()
     {
         return $this->belongsTo('App\Models\Common\Item')->withDefault(['name' => trans('general.na')]);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo('App\Models\Setting\Category');
     }
 
     public function taxes()
@@ -132,7 +127,7 @@ class DocumentItem extends Model
         return $text;
     }
 
-    public function getDiscountRateAttribute(int $value = 0)
+    public function getDiscountRateAttribute($value = 0)
     {
         $discount_rate = 0;
 
@@ -150,18 +145,9 @@ class DocumentItem extends Model
         return $discount_rate;
     }
 
-    /**
-     * Convert tax to Array.
-     */
-    public function setTaxIds()
+    public function getTaxIdsAttribute(): array
     {
-        $tax_ids = [];
-
-        foreach ($this->taxes as $tax) {
-            $tax_ids[] = (string) $tax->tax_id;
-        }
-
-        $this->setAttribute('tax_ids', $tax_ids);
+        return $this->taxes->pluck('tax_id')->all();
     }
 
     public function onCloning($src, $child = null)

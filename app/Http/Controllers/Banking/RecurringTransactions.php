@@ -13,9 +13,11 @@ use App\Models\Banking\Account;
 use App\Models\Banking\Transaction;
 use App\Models\Common\Recurring;
 use App\Models\Setting\Currency;
+use App\Models\Setting\Tax;
 use App\Traits\Currencies;
 use App\Traits\DateTime;
 use App\Traits\Transactions as TransactionsTrait;
+use App\Utilities\Date;
 
 class RecurringTransactions extends Controller
 {
@@ -76,13 +78,16 @@ class RecurringTransactions extends Controller
 
         $currency = Currency::where('code', $account_currency_code)->first();
 
+        $taxes = Tax::enabled()->orderBy('name')->get();
+
         return view('banking.recurring_transactions.create', compact(
             'type',
             'real_type',
             'number',
             'contact_type',
             'account_currency_code',
-            'currency'
+            'currency',
+            'taxes'
         ));
     }
 
@@ -95,7 +100,9 @@ class RecurringTransactions extends Controller
      */
     public function store(Request $request)
     {
-        $response = $this->ajaxDispatch(new CreateTransaction($request->merge(['paid_at' => $request->get('recurring_started_at')])));
+        $request->merge(['paid_at' => $request->get('recurring_started_at')]);
+
+        $response = $this->ajaxDispatch(new CreateTransaction($request));
 
         if ($response['success']) {
             $response['redirect'] = route('recurring-transactions.show', $response['data']->id);
@@ -173,6 +180,8 @@ class RecurringTransactions extends Controller
 
         $currency = Currency::where('code', $recurring_transaction->currency_code)->first();
 
+        $taxes = Tax::enabled()->orderBy('name')->get();
+
         $date_format = $this->getCompanyDateFormat();
 
         return view('banking.recurring_transactions.edit', compact(
@@ -182,6 +191,7 @@ class RecurringTransactions extends Controller
             'contact_type',
             'recurring_transaction',
             'currency',
+            'taxes',
             'date_format'
         ));
     }
@@ -196,7 +206,9 @@ class RecurringTransactions extends Controller
      */
     public function update(Transaction $recurring_transaction, Request $request)
     {
-        $response = $this->ajaxDispatch(new UpdateTransaction($recurring_transaction, $request->merge(['paid_at' => $request->get('recurring_started_at')])));
+        $request->merge(['paid_at' => $request->get('recurring_started_at')]);
+
+        $response = $this->ajaxDispatch(new UpdateTransaction($recurring_transaction, $request));
 
         if ($response['success']) {
             $response['redirect'] = route('recurring-transactions.show', $recurring_transaction->id);

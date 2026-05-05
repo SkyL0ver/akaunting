@@ -13,8 +13,22 @@ class RecurringInvoiceItemTaxes extends Import
 {
     public $request_class = Request::class;
 
+    public $model = Model::class;
+
+    public $columns = [
+        'type',
+        'document_id',
+        'tax_id',
+        'name',
+        'amount'
+    ];
+
     public function model(array $row)
     {
+        if (self::hasRow($row)) {
+            return;
+        }
+
         return new Model($row);
     }
 
@@ -28,15 +42,21 @@ class RecurringInvoiceItemTaxes extends Import
 
         $row = parent::map($row);
 
-        $row['document_id'] = (int) Document::where('type', '=', Document::INVOICE_RECURRING_TYPE)
-            ->number($row['invoice_number'])
-            ->pluck('id')
-            ->first();
+        $document = Document::with('items')->invoiceRecurring()->number($row['invoice_number'])->first();
+
+        if (! $document) {
+            return [];
+        }
+
+        $row['document_id'] = (int) $document->id;
 
         if (empty($row['document_item_id']) && !empty($row['item_name'])) {
-            $item_id = Item::name($row['item_name'])->pluck('id')->first();
+            $document_items_ids = $document->items->pluck('item_id')->toArray();
 
-            $row['document_item_id'] = DocumentItem::where('type', '=', Document::INVOICE_RECURRING_TYPE)
+            $item_id = Item::name($row['item_name'])->whereIn('id', $document_items_ids)->pluck('id')->first();
+
+            $row['document_item_id'] = DocumentItem::invoiceRecurring()
+                ->where('document_id', $row['document_id'])
                 ->where('item_id', $item_id)
                 ->pluck('id')
                 ->first();

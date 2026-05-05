@@ -42,6 +42,8 @@ class DocumentTransactions extends Controller
      */
     public function create(Document $document)
     {
+        $document->load(['totals', 'transactions']);
+
         $currency = Currency::where('code', $document->currency_code)->first();
 
         $paid = $document->paid;
@@ -55,12 +57,14 @@ class DocumentTransactions extends Controller
             $document->{$document_total->code} = $document_total->amount;
         }
 
-        $total = money($document?->total ?? 0, $currency->code)->format();
+        $d_total = $document?->total ?? 0;
+
+        $total = money($d_total, $currency->code)->format();
 
         $document->grand_total = money($total, $currency->code, false)->getAmount();
 
         if (! empty($paid)) {
-            $document->grand_total = round($document?->total ?? 0 - $paid, $currency->precision);
+            $document->grand_total = round($d_total - $paid, $currency->precision);
         }
 
         $amount =  $document->grand_total;
@@ -147,6 +151,8 @@ class DocumentTransactions extends Controller
      */
     public function edit(Document $document, Transaction $transaction)
     {
+        $document->load(['totals', 'transactions']);
+
         $currency = Currency::where('code', $document->currency_code)->first();
 
         // if you edit transaction before remove transaction amount
@@ -163,12 +169,14 @@ class DocumentTransactions extends Controller
             $document->{$document_total->code} = $document_total->amount;
         }
 
-        $total = money($document?->total ?? 0, $currency->code)->format();
+        $d_total = $document?->total ?? 0;
+
+        $total = money($d_total, $currency->code)->format();
 
         $document->grand_total = money($total, $currency->code, false)->getAmount();
 
         if (! empty($paid)) {
-            $document->grand_total = round($document?->total ?? 0 - $paid, $currency->precision);
+            $document->grand_total = round($d_total - $paid, $currency->precision);
         }
 
         $document->paid_at = $transaction->paid_at;

@@ -75,6 +75,11 @@ return [
     'your_notifications'    => 'La teva notificació|Les teves notificacions',
     'employees'             => 'Empleat|Empleats',
     'contact_persons'       => 'Persona de contacte|Persones de contacte',
+    'bank_feeds'            => 'Connexió bancària|Connexions bancàries',
+    'receipts'              => 'Rebut|Rebuts',
+    'discounts'             => 'Descompte|Descomptes',
+    'ofx'                   => 'OFX',
+    'mt940'                 => 'MT940',
 
     'welcome'               => 'Benvingut/da',
     'banking'               => 'Bancs',
@@ -236,6 +241,7 @@ return [
     'preview_mode'          => 'Mode de previsualització',
     'go_back'               => 'Torna a :type',
     'validation_error'      => 'Error de validació',
+    'validation_warning'    => 'Avís de validació',
     'dismiss'               => 'Ignora',
     'size'                  => 'Mida',
     'media'                 => 'Multimèdia',
@@ -307,12 +313,17 @@ return [
         'this_month'        => 'Aquest mes',
         'this_quarter'      => 'Aquest trimestre',
         'this_year'         => 'Aquest any',
-        'year_to_date'      => '',
+        'year_to_date'      => 'Any fins avui',
         'previous_week'     => 'Setmana anterior',
         'previous_month'    => 'Mes anterior',
         'previous_quarter'  => 'Trimestre anterior',
         'previous_year'     => 'Any anterior',
         'custom'            => 'Personalitzat',
+    ],
+
+    'pin_text' => [
+        'pin_tab' => 'Marca la pestanya per defecte',
+        'unpin_tab' => 'Desmarca la pestanya per defecte',
     ],
 
     'empty' => [

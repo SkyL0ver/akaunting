@@ -4,11 +4,11 @@
             <span class="material-icons-outlined text-base font-bold ltr:mr-1 rtl:ml-1">add</span>
              {{ addItemText }}
         </button>
- 
+
         <div :class="[{'is-open': show.item_list}]" tabindex="-1">
             <div class="-mt-10.5 left-0 right-0 bg-white border rounded-lg" v-if="show.item_list">
                <div class="relative">
-                   <span class="material-icons-round absolute left-4 top-3 text-lg">search</span>
+                   <span class="material-icons-round absolute ltr:left-4 rtl:right-4 top-3 text-lg">search</span>
                    <input 
                        type="text"
                        data-input="true"
@@ -25,7 +25,7 @@
 
                 <div v-bind:class="(sortedItems.length > 7) ? 'h-72 overflow-y-auto' : ''">
                     <ul class="w-full text-sm rounded-lg border-light-gray text-black placeholder-light-gray bg-white disabled:bg-gray-200 focus:outline-none focus:ring-transparent focus:border-purple p-0 mt-0 border-0 cursor-pointer">
-                        <div 
+                        <div
                             class="hover:bg-gray-100 px-4" 
                             v-for="(item, index) in sortedItems" 
                             :key="index" 
@@ -35,7 +35,7 @@
                             <div class="w-full flex items-center justify-between">
                                 <span>{{ item.name }}</span>
 
-                                <money 
+                                <money
                                     :name="'item-id-' + item.id"
                                     :value="item.price"
                                     v-bind="money"
@@ -57,8 +57,8 @@
                 </div>
 
                 <div class="flex items-center justify-center h-11 text-center text-purple font-bold border border-l-0 border-r-0 border-b-0 rounded-bl-lg rounded-br-lg hover:bg-gray-100 cursor-pointer" @click="onItemCreate">
-                     <span class="material-icons text-lg font-bold mr-1">add</span>
-                     {{ createNewItemText }}
+                    <span class="material-icons text-lg font-bold ltr:mr-1 rtl:ml-1">add</span>
+                    {{ createNewItemText }}
                 </div>
             </div>
         </div>
@@ -176,17 +176,29 @@ export default {
             },
             description: "Default currency"
         },
+        searchUrl: {
+            type: String,
+            default: url + '/common/items',
+            description: "Search URL"
+        },
         searchCharLimit: {
             type: Number,
             default: 3,
             description: "Character limit for item search input"
-        }
+        },
+        searchListKey: {
+            type: String|Array|Object,
+            default: 'value',
+            description: "Key for search in item list"
+        },
     },
 
     data() {
         return {
             item_list: [],
             selected_items: [],
+            search_list_key: this.searchListKey,
+            useRemoteResultSet: false,
             changeBackground: true,
             search: '', // search column model
             show: {
@@ -237,41 +249,26 @@ export default {
     methods: {
         setItemList(items) {
             this.item_list = [];
+            this.useRemoteResultSet = false;
 
             this.search.length === 0 ? this.isItemMatched = false : {}
 
             // Option set sort_option data
-            if (!Array.isArray(items)) {
+            if (! Array.isArray(items)) {
                 let index = 0;
 
                 for (const [key, value] of Object.entries(items)) {
-                    this.item_list.push({
-                        index: index,
-                        key: key,
-                        value: value,
-                        type: 'item',
-                        id: key,
-                        name: value,
-                        description: '',
-                        price: 0,
-                        tax_ids: [], 
-                    });
+                    let list_item = this.getObjectItem(key, value, index);
+
+                    this.item_list.push(list_item);
 
                     index++;
                 }
             } else {
                 items.forEach(function (item, index) {
-                    this.item_list.push({
-                        index: index,
-                        key: item.id,
-                        value: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
-                        type: this.type,
-                        id: item.id,
-                        name: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
-                        description: (item.description) ? item.description : '',
-                        price: (item.price) ? item.price : (this.price == 'purchase_price') ? item.purchase_price : item.sale_price,
-                        tax_ids: (item.tax_ids) ? item.tax_ids : [],
-                    });
+                    let list_item = this.getArrayItem(item, index);
+
+                    this.item_list.push(list_item);
                 }, this);
             }
         },
@@ -288,9 +285,11 @@ export default {
             this.search = event.target.value;
 
             this.isItemMatched = false;
+
             //to optimize performance we kept the condition that checks for if search exists or not
-            if (!this.search) {
+            if (! this.search) {
                 this.isItemMatched = false; //to remove the style from matched item on input is cleared (option)
+
                 return;
             }
 
@@ -298,6 +297,7 @@ export default {
             if (this.search.length < this.searchCharLimit) {
                 this.setItemList(this.items); //once the user deletes the search input, we show the overall item list
                 this.sortItems(); // we order it as wanted
+
                 this.$emit('input', this.search); // keep the input binded to v-model
 
                 return;
@@ -317,30 +317,30 @@ export default {
         },
 
         async fetchMatchedItems() {
-            await window.axios.get(url + '/common/items?search="' + this.search + '" not ' + this.price + ':NULL enabled:1 limit:10')
+            let search_limit_value = this.getSearchLimitValue();
+
+            await window.axios.get(this.searchUrl + '?search="' + this.search + '"' + ' not ' + this.price + ':NULL enabled:1 limit:10' + search_limit_value)
                 .then(response => {
                     this.item_list = [];
                     let items = response.data.data;
 
+                    if (response.data.search_list_key) {
+                        this.search_list_key = response.data.search_list_key;
+                    }
+
                     items.forEach(function (item, index) {
-                        this.item_list.push({
-                            index: index,
-                            key: item.id,
-                            value: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
-                            type: this.type,
-                            id: item.id,
-                            name: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
-                            description: (item.description) ? item.description : '',
-                            price: (item.price) ? item.price : (this.price == 'purchase_price') ? item.purchase_price : item.sale_price,
-                            tax_ids: (item.tax_ids) ? item.tax_ids : [],
-                        });
+                        let list_item = this.getArrayItem(item, index);
+
+                        this.item_list.push(list_item);
                     }, this);
+
+                    this.useRemoteResultSet = true;
                 })
                 .catch(error => {});
         },
 
         onItemSelected(clickSelectedItem) {
-            let item; 
+            let item;
             const firstMatchedItem = this.item_list[0];
             const isClickSelectedItem = clickSelectedItem ? true : false;
             isClickSelectedItem ? item = clickSelectedItem  : item = firstMatchedItem;
@@ -377,7 +377,7 @@ export default {
                 price: 0,
                 tax_ids: [],
             };
-            
+
             this.newItems.push(item);
 
             this.addItem(item, 'newItem');
@@ -427,17 +427,9 @@ export default {
                 if (response.data.success) {
                     let item = response.data.data;
 
-                    this.item_list.push({
-                        index: index,
-                        key: item.id,
-                        value: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
-                        type: this.type,
-                        id: item.id,
-                        name: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
-                        description: (item.description) ? item.description : '',
-                        price: (item.price) ? item.price : (this.price == 'purchase_price') ? item.purchase_price : item.sale_price,
-                        tax_ids: (item.tax_ids) ? item.tax_ids : [],
-                    });
+                    let list_item = this.getArrayItem(item, index);
+
+                    this.item_list.push(list_item);
 
                     this.add_new.show = false;
 
@@ -499,11 +491,137 @@ export default {
                 return 0;
             });
 
-            const sortedItemList = this.item_list.filter(item => 
-                item.value.toLowerCase().includes(this.search.toLowerCase())
-            );
+            // Remote endpoint already filters by the query (including custom fields).
+            // Re-filtering by local text keys can hide valid backend matches.
+            if (this.useRemoteResultSet) {
+                this.useRemoteResultSet = false;
+
+                return this.item_list;
+            }
+
+            const sortedItemList = this.item_list.filter((item, index, items) => {
+                if (typeof this.search_list_key === 'string') {
+                    return item[this.search_list_key].toLowerCase().includes(this.search.toLowerCase());
+                }
+
+                if (Array.isArray(this.search_list_key)) {
+                    return this.search_list_key.some(key => item[key].toLowerCase().includes(this.search.toLowerCase()));
+                }
+
+                if (typeof this.search_list_key === 'object') {
+                    return Object.keys(this.search_list_key).some(key => item[key].toLowerCase().includes(this.search.toLowerCase()));
+                }
+
+                return false;
+            }, this);
 
             return sortedItemList;
+        },
+
+        getSearchLimitValue() {
+            let value = '';
+
+            if (typeof this.search_list_key === 'string' && this.search_list_key !== 'value') {
+                value += ' or ' + this.search_list_key + ' = "' + this.search + '" not ' + this.price + ':NULL enabled:1 limit:10';
+            } else if (Array.isArray(this.search_list_key)) {
+                this.search_list_key.forEach(key => {
+                    if (key !== 'value') {
+                        value += ' or ' + key + ' = "' + this.search + '" not ' + this.price + ':NULL enabled:1 limit:10';
+                    }
+                });
+            } else if (typeof this.search_list_key === 'object') {
+                Object.keys(this.search_list_key).forEach(key => {
+                    if (key !== 'value') {
+                        value += ' or ' + key + ' = "' + this.search + '" not ' + this.price + ':NULL enabled:1 limit:10';
+                    }
+                });
+            }
+
+            return value;
+        },
+
+        getObjectItem(key, value, index) {
+            let item = {
+                index: index,
+                key: key,
+                value: value,
+                type: 'item',
+                id: key,
+                name: value,
+                description: '',
+                price: 0,
+                tax_ids: [],
+            };
+
+            if (typeof this.search_list_key === 'string' && this.search_list_key !== 'value') {
+                item[this.search_list_key] = value;
+            }
+
+            if (Array.isArray(this.search_list_key)) {
+                this.search_list_key.forEach(key => {
+                    if (key !== 'value') {
+                        item[key] = value;
+                    }
+                });
+            } else if (typeof this.search_list_key === 'object') {
+                Object.keys(this.search_list_key).forEach(key => {
+                    if (key !== 'value') {
+                        item[key] = value;
+                    }
+                });
+            }
+
+            return item;
+        },
+
+        getArrayItem(item, index) {
+            let list_item = {
+                index: index,
+                key: item.id,
+                value: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
+                type: this.type,
+                id: item.id,
+                name: (item.title) ? item.title : (item.display_name) ? item.display_name : item.name,
+                description: (item.description) ? item.description : '',
+                price: (item.price) ? item.price : (this.price == 'purchase_price') ? item.purchase_price : item.sale_price,
+                tax_ids: (item.tax_ids) ? item.tax_ids : [],
+            };
+
+            if (typeof this.search_list_key === 'string' && this.search_list_key !== 'value') {
+                list_item[this.search_list_key] = (item[this.search_list_key]) ? item[this.search_list_key] : '';
+            }
+
+            if (Array.isArray(this.search_list_key)) {
+                this.search_list_key.forEach(key => {
+                    if (key !== 'value') {
+                        list_item[key] = item[key]
+                        ? item[key]
+                        : (key.indexOf('.') > -1
+                            ? (item[key.split('.')[0]]
+                                ? (item[key.split('.')[0]][key.split('.')[1]]
+                                    ? item[key.split('.')[0]][key.split('.')[1]]
+                                    : '')
+                                : '')
+                            : '');
+                    }
+                }, this);
+            } else if (typeof this.search_list_key === 'object') {
+                Object.keys(this.search_list_key).forEach(key => {
+                    if (key !== 'value') {
+                        list_item[key] = item[key]
+                        ? item[key]
+                        : (key.indexOf('.') > -1
+                            ? (item[key.split('.')[0]]
+                                ? (item[key.split('.')[0]][key.split('.')[1]]
+                                    ? item[key.split('.')[0]][key.split('.')[1]]
+                                    : '')
+                                : '')
+                            : '');
+                    }
+                }, this);
+            }
+
+            return list_item;
         },
     },
 
@@ -518,7 +636,7 @@ export default {
 
     watch: {
         dynamicCurrency: function (currency) {
-            if (!currency) {
+            if (! currency) {
                 return;
             }
 
@@ -526,7 +644,7 @@ export default {
                 decimal: currency.decimal_mark,
                 thousands: currency.thousands_separator,
                 prefix: (currency.symbol_first) ? currency.symbol : '',
-                suffix: (!currency.symbol_first) ? currency.symbol : '',
+                suffix: (! currency.symbol_first) ? currency.symbol : '',
                 precision: parseInt(currency.precision),
                 masked: this.masked
             };
@@ -546,6 +664,6 @@ export default {
 
 <style scoped>
     .highlightItem:first-child {
-        background-color: #F5F7FA;    
+        background-color: #F5F7FA;
     }
 </style>

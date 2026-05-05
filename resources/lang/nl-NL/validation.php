@@ -21,7 +21,7 @@ return [
     'alpha' => ':attribute mag enkel letters bevatten.',
     'alpha_dash' => ':attribute mag enkel letters, cijfers of koppeltekens bevatten.',
     'alpha_num' => ':attribute mag enkel letters en cijfers bevatten.',
-    'array' => ':Attribute moet geselecteerde elementen bevatten.',
+    'array' => ':attribute moet geselecteerde elementen bevatten.',
     'before' => ':attribute moet een datum zijn voor :date.',
     'before_or_equal' => ':attribute moet een datum zijn voor of gelijk aan :date.',
     'between' => [
@@ -44,6 +44,7 @@ return [
     'dimensions' => ':attribute heeft ongeldige afbeelding afmetingen.',
     'distinct' => ':attribute velden bevat dubbele waarden.',
     'doesnt_start_with' => 'Het :attribute mag niet beginnen met een van de volgende: :values.',
+    'double' => ':attribute moet een geldige dubbele waarde zijn.',
     'email' => ':Attribute is geen geldig e-mailadres.',
     'ends_with' => ':Attribute moet met één van de volgende waarden eindigen: :values',
     'enum' => 'Het geselecteerde :attribute is ongeldig.',
@@ -65,6 +66,7 @@ return [
     'image' => ':Attribute moet een afbeelding zijn.',
     'in' => 'Het geselecteerde :attribute is ongeldig.',
     'in_array' => ':attribute veld bestaat niet in :other.',
+    'in_detailed' => 'De :attribute waarde “:value” is ongeldig. Verwacht werd een van: :values',
     'integer' => ':Attribute moet een getal zijn.',
     'ip' => ':attribute moet een geldig IP-adres zijn.',
     'ipv4' => ':attribute moet een geldig IPv4-adres zijn.',
@@ -157,6 +159,7 @@ return [
         'invalid_extension'     => 'De bestandsextensie is ongeldig.',
         'invalid_dimension'     => 'De :attribute afmetingen moeten max :width x :height px zijn.',
         'invalid_colour'        => 'Het :attribuut kleur is ongeldig.',
+        'invalid_payment_method'=> 'De betaalmethode is ongeldig.',
     ],
 
     /*

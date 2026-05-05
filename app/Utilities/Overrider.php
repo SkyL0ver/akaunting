@@ -3,7 +3,9 @@
 namespace App\Utilities;
 
 use Akaunting\Money\Money;
+use App\Models\Setting\Category;
 use App\Models\Setting\Currency;
+use Illuminate\Support\Str;
 
 class Overrider
 {
@@ -60,7 +62,7 @@ class Overrider
         }
 
         // Set locale for Money package
-		Money::setLocale(app()->getLocale());
+        Money::setLocale(app()->getLocale());
 
         // Money
         config(['money.defaults.currency' => setting('default.currency')]);
@@ -71,11 +73,58 @@ class Overrider
         }
     }
 
+    protected static function loadCategoryTypes()
+    {
+        $category = new Category;
+
+        $income_types  = $category->getIncomeCategoryTypes('string');
+        $expense_types = $category->getExpenseCategoryTypes('string');
+        $item_types    = $category->getItemCategoryTypes('string');
+        $other_types    = $category->getOtherCategoryTypes('string');
+
+        $search_string = config('search-string');
+
+        foreach ($search_string as $model => &$model_config) {
+            $route = $model_config['columns']['category_id']['route'] ?? null;
+
+            // Only update category_id routes that point to categories.index
+            if (!is_array($route) || ($route[0] ?? '') !== 'categories.index' || !isset($route[1])) {
+                continue;
+            }
+
+            // Longest match first (income,expense must come before income)
+            $replacements = [
+                'type:' . Category::INCOME_TYPE . ',' . Category::EXPENSE_TYPE => 'type:' . $income_types . ',' . $expense_types,
+                'type:' . Category::INCOME_TYPE  => 'type:' . $income_types,
+                'type:' . Category::EXPENSE_TYPE => 'type:' . $expense_types,
+                'type:' . Category::ITEM_TYPE    => 'type:' . $item_types,
+                'type:' . Category::OTHER_TYPE    => 'type:' . $other_types,
+            ];
+
+            foreach ($replacements as $search => $replace) {
+                if (Str::contains($route[1], $search)) {
+                    $model_config['columns']['category_id']['route'][1] = Str::replace($search, $replace, $route[1]);
+                    break;
+                }
+            }
+        }
+
+        config(['search-string' => $search_string]);
+    }
+
     protected static function loadCurrencies()
     {
         $currencies = Currency::all();
 
         foreach ($currencies as $currency) {
+            // If currency is not set in config, add it
+            if (! config("money.currencies.{$currency->code}")) {
+                config(['money.currencies.' . $currency->code => [
+                    'code' => $currency->code,
+                    'subunit' => 100,
+                ]]);
+            }
+
             config(['money.currencies.' . $currency->code . '.name' => $currency->name]);
             config(['money.currencies.' . $currency->code . '.rate' => $currency->rate]);
             config(['money.currencies.' . $currency->code . '.precision' => $currency->precision]);

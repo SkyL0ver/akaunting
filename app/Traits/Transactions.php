@@ -28,7 +28,7 @@ trait Transactions
         return in_array($type, $this->getExpenseTypes());
     }
 
-    public function isNotExpense()
+    public function isNotExpense(): bool
     {
         return ! $this->isExpense();
     }
@@ -42,7 +42,7 @@ trait Transactions
 
     public function isNotRecurringTransaction(): bool
     {
-        return ! $this->isRecurring();
+        return ! $this->isRecurringTransaction();
     }
 
     public function isTransferTransaction(): bool
@@ -95,7 +95,11 @@ trait Transactions
     {
         $types = (string) setting('transaction.type.' . $index);
 
-        return ($return == 'array') ? explode(',', $types) : $types;
+        if ($return == 'array') {
+            return $types === '' ? [] : explode(',', $types);
+        }
+
+        return $types;
     }
 
     public function addIncomeType(string $new_type): void
@@ -153,7 +157,9 @@ trait Transactions
     {
         event(new TransactionPrinting($transaction));
 
-        $view = view('banking.transactions.print_default', ['transaction' => $transaction])->render();
+        $real_type = $this->getRealTypeTransaction($transaction->type);
+
+        $view = view('banking.transactions.print_default', compact('transaction', 'real_type'))->render();
         $html = mb_convert_encoding($view, 'HTML-ENTITIES', 'UTF-8');
 
         $pdf = app('dompdf.wrapper');
@@ -192,6 +198,7 @@ trait Transactions
             'add_an' => trans('general.form.add_an', ['field' => trans_choice('general.' . Str::plural($document_type), 1)]),
             'transaction' => trans_choice('general.' . Str::plural($type), 1),
             'difference' => trans('general.difference'),
+            'connect_tax' => trans('messages.warning.connect_tax', ['type' => $type]),
         ];
     }
 
@@ -243,12 +250,12 @@ trait Transactions
         return Str::replace('-split', '', $transfer_type);
     }
 
-    public function getNextTransactionNumber($type = 'income', $suffix = ''): string
+    public function getNextTransactionNumber(string $type = 'income', string $suffix = ''): string
     {
         return app(TransactionNumber::class)->getNextNumber($type, $suffix, null);
     }
 
-    public function increaseNextTransactionNumber($type = 'income', $suffix = ''): void
+    public function increaseNextTransactionNumber(string $type = 'income', string $suffix = ''): void
     {
         app(TransactionNumber::class)->increaseNextNumber($type, $suffix, null);
     }

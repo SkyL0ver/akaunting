@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Setting\Category;
+
 return [
 
     /*
@@ -184,7 +186,7 @@ return [
             'payment_method',
             'reference',
             'category_id' => [
-                'route' => ['categories.index', 'search=type:income,expense enabled:1'],
+                'route' => ['categories.index', 'search=type:' . Category::INCOME_TYPE . ',' . Category::EXPENSE_TYPE . ',' . Category::COGS_TYPE . ' enabled:1'],
                 'fields' => [
                     'key' => 'id',
                     'value' => 'display_name',
@@ -246,7 +248,7 @@ return [
             'description' => ['searchable' => true],
             'enabled' => ['boolean' => true],
             'category_id' => [
-                'route' => ['categories.index', 'search=type:item enabled:1'],
+                'route' => ['categories.index', 'search=type:' . Category::ITEM_TYPE . ' enabled:1'],
                 'fields' => [
                     'key' => 'id',
                     'value' => 'name',
@@ -345,14 +347,17 @@ return [
                 'route' => ['currencies.index', 'search=enabled:1'],
                 'multiple' => true,
             ],
-            'contact_id',
+            'contact_id' => [
+                'route' => 'contacts.index',
+                'multiple' => true,
+            ],
             'contact_name' => ['searchable' => true],
             'contact_email' => ['searchable' => true],
             'contact_tax_number',
             'contact_phone' => ['searchable' => true],
             'contact_address' => ['searchable' => true],
             'category_id' => [
-                'route' => ['categories.index', 'search=type:income,expense enabled:1'],
+                'route' => ['categories.index', 'search=type:' . Category::INCOME_TYPE . ',' . Category::EXPENSE_TYPE . ' enabled:1'],
                 'multiple' => true,
             ],
             'parent_id',
@@ -403,7 +408,7 @@ return [
             'contact_phone' => ['searchable' => true],
             'contact_address' => ['searchable' => true],
             'category_id' => [
-                'route' => ['categories.index', 'search=type:expense enabled:1'],
+                'route' => ['categories.index', 'search=type:' . Category::EXPENSE_TYPE . ' enabled:1'],
                 'fields' => [
                     'key' => 'id',
                     'value' => 'name',
@@ -459,7 +464,7 @@ return [
             'contact_phone' => ['searchable' => true],
             'contact_address' => ['searchable' => true],
             'category_id' => [
-                'route' => ['categories.index', 'search=type:income enabled:1'],
+                'route' => ['categories.index', 'search=type:' . Category::INCOME_TYPE . ' enabled:1'],
                 'fields' => [
                     'key' => 'id',
                     'value' => 'name',
@@ -480,6 +485,8 @@ return [
     App\Models\Setting\Category::class => [
         'columns' => [
             'id',
+            'code' => ['searchable' => true],
+            'description' => ['searchable' => true],
             'name' => ['searchable' => true],
             'enabled' => ['boolean' => true],
             'type' => [

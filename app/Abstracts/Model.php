@@ -5,8 +5,10 @@ namespace App\Abstracts;
 use Akaunting\Sortable\Traits\Sortable;
 use App\Events\Common\SearchStringApplied;
 use App\Events\Common\SearchStringApplying;
+use App\Interfaces\Export\WithParentSheet;
 use App\Traits\DateTime;
 use App\Traits\Owners;
+use App\Traits\SearchString;
 use App\Traits\Sources;
 use App\Traits\Tenants;
 use GeneaLabs\LaravelModelCaching\Traits\Cachable;
@@ -14,11 +16,11 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laratrust\Contracts\Ownable;
-use Lorisleiva\LaravelSearchString\Concerns\SearchString;
+use Lorisleiva\LaravelSearchString\Concerns\SearchString as LaravelSearchString;
 
 abstract class Model extends Eloquent implements Ownable
 {
-    use Cachable, DateTime, Owners, SearchString, SoftDeletes, Sortable, Sources, Tenants;
+    use Cachable, DateTime, LaravelSearchString, Owners, SearchString, SoftDeletes, Sortable, Sources, Tenants;
 
     protected $tenantable = true;
 
@@ -128,7 +130,9 @@ abstract class Model extends Eloquent implements Ownable
     {
         event(new SearchStringApplying($query));
 
-        $string = $string ?: request('search');
+        $string = $string ?: request('search', '');
+
+        $string = $this->stripUnknownSearchStringTokens($string, get_class($this));
 
         $this->getSearchStringManager()->updateBuilder($query, $string);
 
@@ -161,7 +165,9 @@ abstract class Model extends Eloquent implements Ownable
         $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
         $offset = $page ? ($page - 1) * $limit : 0;
 
-        $query->offset($offset)->limit($limit);
+        if (! $this instanceof WithParentSheet && (empty($ids) || count((array) $ids) > $limit)) {
+            $query->offset($offset)->limit($limit);
+        }
 
         return $query->cursor();
     }
@@ -241,6 +247,15 @@ abstract class Model extends Eloquent implements Ownable
     public function scopeIsNotRecurring(Builder $query): Builder
     {
         return $query->where($this->qualifyColumn('type'), 'not like', '%-recurring');
+    }
+
+    public function scopeModuleEnabled(Builder $query, string $module): Builder
+    {
+        return $query->allCompanies()->whereHas('company', fn (Builder $q1) =>
+            $q1->enabled()->whereHas('modules', fn (Builder $q2) =>
+                $q2->allCompanies()->alias($module)->enabled(),
+            )
+        );
     }
 
     public function ownerKey($owner)

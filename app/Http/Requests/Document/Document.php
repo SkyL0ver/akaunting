@@ -47,7 +47,7 @@ class Document extends FormRequest
 
         $rules = [
             'type'                  => 'required|string',
-            'document_number'       => 'required|string|unique:documents,NULL,' . $id . ',id,type,' . $type . ',company_id,' . $company_id . ',deleted_at,NULL',
+            'document_number'       => 'required|string|unique:documents,NULL,' . ($id ?? 'null') . ',id,type,' . $type . ',company_id,' . $company_id . ',deleted_at,NULL',
             //'status'                => 'required|string|in:draft,paid,partial,sent,received,viewed,cancelled',
             'status'                => 'required|string',
             'issued_at'             => 'required|date_format:Y-m-d H:i:s|before_or_equal:due_at',
@@ -92,15 +92,30 @@ class Document extends FormRequest
         if ($items) {
             foreach ($items as $key => $item) {
                 $size = 10;
+                $quantityRule = ['required'];
+
+                try {
+                    $items[$key]['quantity'] = calculation_to_quantity($item['quantity']);
+                } catch (\InvalidArgumentException $e) {
+                    $quantityRule[] = function ($attribute, $value, $fail) {
+                        $fail(trans('validation.custom.invalid_quantity', [
+                            'attribute' => Str::lower(trans('invoices.quantity')),
+                        ]));
+                    };
+                }
 
                 if (Str::contains($item['quantity'], ['.', ','])) {
                     $size = 12;
                 }
 
-                $rules['items.' . $key . '.quantity'] = 'required|max:' . $size;
+                $quantityRule[] = 'max:' . $size;
+
+                $rules['items.' . $key . '.quantity'] = $quantityRule;
 
                 $this->items_quantity_size[$key] = $size;
             }
+
+            $this->request->set('items', $items);
         }
 
         return $rules;

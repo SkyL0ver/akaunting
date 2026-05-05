@@ -1,5 +1,4 @@
-
-@if ($attachment)
+@if ($attachment || $transaction_attachment->count())
     <x-show.accordion type="attachment" :open="($accordionActive == 'attachment')">
         <x-slot name="head">
             <x-show.accordion.head
@@ -9,9 +8,13 @@
         </x-slot>
 
         <x-slot name="body">
-            @foreach ($attachment as $file)
-                <x-media.file :file="$file" />
-            @endforeach
+            @stack('timeline_attachment_body_start')
+
+            @if ($attachment)
+                @foreach ($attachment as $file)
+                    <x-media.file :file="$file" />
+                @endforeach
+            @endif
 
             @if ($transaction_attachment->count())
                 <div class="relative mt-4">
@@ -28,6 +31,8 @@
                     <x-media.file :file="$file" />
                 @endforeach
             @endif
+
+            @stack('timeline_attachment_body_end')
         </x-slot>
     </x-show.accordion>
 @endif

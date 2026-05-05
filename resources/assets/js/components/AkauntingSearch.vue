@@ -1,7 +1,7 @@
 <template>
     <div
         :id="'search-field-' + _uid"
-        class="lg:h-12 my-5 searh-field flex flex-col lg:flex-row border-b transition-all js-search"
+        class="lg:h-12 my-5 search-field flex flex-col lg:flex-row border-b transition-all js-search"
         :class="input_focus ? 'border-gray-500' : 'border-gray-300'"
     >
         <div class="w-full lg:w-auto flex overflow-x-scroll large-overflow-unset" :class="filtered.length ? 'h-12 lg:h-auto' : ''">
@@ -24,10 +24,10 @@
 
                 <span v-if="filter.value" class="flex items-center bg-purple-lighter text-black border-0 mt-3 px-3 py-4 text-sm cursor-pointer el-tag el-tag--small el-tag-value">
                     <span v-if="Array.isArray(filter.value)">
-                        <span v-for="(multiple_filter, index) in filter.value" v-if="index < 3" class="-mr-0.5">
+                        <span v-for="(multiple_filter, index) in filter.value" v-if="index < 3" class="ltr:-mr-0.5 rtl:-ml-0.5">
                             {{ (index == 0) ? multiple_filter.value : ', ' + multiple_filter.value }}
                         </span>
-                        <span v-if="filter.value.length > 3" class="-mr-0.5">
+                        <span v-if="filter.value.length > 3" class="ltr:-mr-0.5 rtl:-ml-0.5">
                            &nbsp; {{ ' + ' + (filter.value.length - 3) + ' ' + moreText }}
                         </span>
                     </span>
@@ -98,7 +98,7 @@
                 </li>
 
                 <li ref="" v-if="search" class="p-2 hover:bg-lilac-900 dropdown-item">
-                    <button type="button" class="text-left" @click="onInputConfirm">{{ searchText }}</button>
+                    <button type="button" class="ltr:text-left rtl:text-right" @click="onInputConfirm">{{ searchText }}</button>
                 </li>
             </div>
 
@@ -130,7 +130,7 @@
                 <li ref="" class="w-full flex items-center px-2 h-9 leading-9 whitespace-nowrap" v-for="(value) in filteredValues" :data-value="value.key">
                     <div v-if="! multiple" class="w-full flex items-center h-9 leading-9 whitespace-nowrap">
                         <button type="button" class="w-full h-full flex items-center rounded-md px-2 text-sm hover:bg-lilac-100" @click="onValueSelected(value.key)">
-                            <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 pointer-events-none">subdirectory_arrow_right</i>
+                            <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 rtl:rotate-180 pointer-events-none">subdirectory_arrow_right</i>
                             {{ value.value }}
                         </button>
                     </div>
@@ -140,7 +140,7 @@
                             <input type="checkbox" name="multiple-filter-values" :id="'search-field-value-' + _uid + '-multiple-' + value.key"  :value="value.key" v-model="multiple_values" data-type="single" class="rounded-sm text-purple border-gray-300 cursor-pointer disabled:bg-gray-200 focus:outline-none focus:ring-transparent mt-0.5">
 
                             <label :for="'search-field-value-' + _uid + '-multiple-' + value.key" class="w-full h-full flex items-center rounded-md px-2">
-                                <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 pointer-events-none">subdirectory_arrow_right</i>
+                                <i v-if="value.level != null" class="material-icons align-middle text-lg ltr:mr-2 rtl:ml-2 rtl:rotate-180 pointer-events-none">subdirectory_arrow_right</i>
                                 {{ value.value }}
                             </label>
                         </div>
@@ -176,7 +176,7 @@
 import moment from 'moment';
 import flatPicker from "vue-flatpickr-component";
 import "flatpickr/dist/flatpickr.css";
-import {getQueryVariable} from './../plugins/functions';
+import {getQueryVariable, removeURLParameter} from './../plugins/functions';
 
 export default {
     name: 'akaunting-search',
@@ -290,6 +290,7 @@ export default {
             selected_operator: [],
             selected_values: [],
             values: [],
+            useRemoteSearchValues: false,
             multiple_values: [],
             current_operator: '',
             current_value: null,
@@ -432,6 +433,7 @@ export default {
                     }, this);
 
                     this.option_values[value] = this.values;
+                    this.useRemoteSearchValues = true;
                 })
                 .catch(error => {
 
@@ -486,7 +488,7 @@ export default {
                     let dates = this.selected_values[index].key.split('-to-');
 
                     date_range_path += sign + 'start_date=' + dates[0];
-                    date_range_path += '&end_date=' + dates[1];
+                    date_range_path += '&end_date=' + (dates[1] ? dates[1] : dates[0]);
 
                     return;
                 }
@@ -652,6 +654,7 @@ export default {
                 }, this);
 
                 this.option_values[value] = this.values;
+                this.useRemoteSearchValues = false;
             })
             .catch(error => {
 
@@ -923,9 +926,13 @@ export default {
 
             search_string = search_string.split(' ');
 
+            let search_values = [];
+
             search_string.forEach(function (string) {
                 if (string.search(':') === -1) {
-                    this.search = string.replace(/[\"]+/g, '');
+                    let sv = string.replace(/[\"]+/g, '');
+
+                    search_values.push(sv);
                 } else {
                     let filter = string.split(':');
                     let option = '';
@@ -1014,6 +1021,8 @@ export default {
                     this.filter_index++;
                 }
             }, this);
+
+            this.search = (search_values.length > 1) ? search_values.join(' ') : search_values.join('');
         } else if (this.defaultFiltered) {
             this.defaultFiltered.forEach(function (filter) {
                 let option = '';
@@ -1082,59 +1091,72 @@ export default {
         }
 
         if (getQueryVariable('start_date') && getQueryVariable('end_date')) {
-            this.filter_list.forEach(function (_filter, i) {
-                if (_filter.key != 'date_range') {
-                    return;
-                }
+            let start = new Date(getQueryVariable('start_date'));
+            let end = new Date(getQueryVariable('end_date'));
+            let start_date = getQueryVariable('start_date');
+            let end_date = getQueryVariable('end_date');
 
-                this.selected_options.push(this.filter_list[i]);
+            if ((start instanceof Date && ! isNaN(start)) || (end instanceof Date && ! isNaN(end))) {
+                start_date = (start instanceof Date && ! isNaN(start)) ? start_date : ((end instanceof Date && ! isNaN(end)) ? end_date : false);
+                end_date = (end instanceof Date && ! isNaN(end)) ? end_date : ((start instanceof Date && ! isNaN(start)) ? start_date : false); 
 
-                this.selected_operator.push({
-                    key: '=',
-                });
-
-                this.filter_list.splice(i, 1);
-
-                let value_assigned = false;
-                let filter_values = this.convertOption(_filter.values);
-
-                this.option_values[_filter.key] = filter_values;
-
-                let date_range_value = getQueryVariable('start_date') + '-to-' + getQueryVariable('end_date');
-
-                filter_values.forEach(function (value, j) {
-                    if (value.key == date_range_value) {
-                        this.selected_values.push(value);
-
-                        this.option_values[_filter.key].splice(j, 1);
-
-                        value_assigned = true;
+                this.filter_list.forEach(function (_filter, i) {
+                    if (_filter.key != 'date_range') {
+                        return;
                     }
-                }, this);
 
-                let date_range_value_format = '';
+                    this.selected_options.push(this.filter_list[i]);
 
-                if (! value_assigned) {
-                    let dates = date_range_value.split('-to-');
-
-                    let date_format = this.convertToDarteFormat(this.dateConfig.altFormat);
-
-                    date_range_value_format = moment(dates[0]).format(date_format) + ' to ' + moment(dates[1]).format(date_format);
-
-                    this.selected_values.push({
-                        key: date_range_value,
-                        value: date_range_value_format,
+                    this.selected_operator.push({
+                        key: '=',
                     });
-                }
 
-                this.filtered.push({
-                    option: _filter.value,
-                    operator: '=',
-                    value: (_filter.values[date_range_value]) ? _filter.values[date_range_value] : date_range_value_format,
-                });
+                    this.filter_list.splice(i, 1);
 
-                this.filter_index++;
-            }, this);
+                    let value_assigned = false;
+                    let filter_values = this.convertOption(_filter.values);
+
+                    this.option_values[_filter.key] = filter_values;
+
+                    let date_range_value = start_date + '-to-' + end_date;
+
+                    filter_values.forEach(function (value, j) {
+                        if (value.key == date_range_value) {
+                            this.selected_values.push(value);
+
+                            this.option_values[_filter.key].splice(j, 1);
+
+                            value_assigned = true;
+                        }
+                    }, this);
+
+                    let date_range_value_format = '';
+
+                    if (! value_assigned) {
+                        let dates = date_range_value.split('-to-');
+
+                        let date_format = this.convertToDarteFormat(this.dateConfig.altFormat);
+
+                        date_range_value_format = moment(dates[0]).format(date_format) + ' to ' + moment(dates[1]).format(date_format);
+
+                        this.selected_values.push({
+                            key: date_range_value,
+                            value: date_range_value_format,
+                        });
+                    }
+
+                    this.filtered.push({
+                        option: _filter.value,
+                        operator: '=',
+                        value: (_filter.values[date_range_value]) ? _filter.values[date_range_value] : date_range_value_format,
+                    });
+
+                    this.filter_index++;
+                }, this);
+            } else {
+                removeURLParameter('start_date');
+                removeURLParameter('end_date');
+            }
         }
     },
 
@@ -1204,6 +1226,13 @@ export default {
                 return 0;
             });
 
+            // Remote endpoint already filtered by search query - skip local re-filter.
+            if (this.useRemoteSearchValues) {
+                this.useRemoteSearchValues = false;
+
+                return this.values;
+            }
+
             return this.values.filter(value => {
                 return value.value.toLowerCase().includes(this.search.toLowerCase());
             });
@@ -1224,75 +1253,86 @@ export default {
 </script>
 
 <style>
-    .searh-field .tags-group:hover > span {
+    .search-field .tags-group:hover > span {
         background:#cbd4de;
         background-color: #cbd4de;
         border-color: #cbd4de;
     }
 
-    .searh-field .el-tag.el-tag--primary .el-tag__close.el-icon-close {
+    .search-field .el-tag.el-tag--primary .el-tag__close.el-icon-close {
         color: #8898aa;
         margin-top: -3px;
     }
 
-    .searh-field .el-tag.el-tag--primary .el-tag__close.el-icon-close:hover {
+    .search-field .el-tag.el-tag--primary .el-tag__close.el-icon-close:hover {
         background-color: transparent;
     }
 
-    html[dir='ltr'] .searh-field .el-tag-option {
-        border-radius: 0.50rem 0 0 0.50rem;
-        //margin-left: 10px;
+    html[dir='rtl'] .search-field .el-tag .el-tag__close.el-icon-close {
+        left: auto;
+        right: 4px;
     }
 
-    html[dir='rtl'] .searh-field .el-tag-option {
+    html[dir='ltr'] .search-field .el-tag-option {
+        border-radius: 0.50rem 0 0 0.50rem;
+        /* margin-left: 10px; */
+    }
+
+    html[dir='rtl'] .search-field .el-tag-option {
         border-radius: 0 0.5rem 0.5rem 0;
     }
 
-    .searh-field .el-tag-operator {
+    .search-field .el-tag-operator {
         border-radius: 0;
         margin-left: -1px;
         margin-right: -1px;
     }
 
-    html[dir='ltr'] .searh-field .el-tag-value {
+    html[dir='ltr'] .search-field .el-tag-value {
         border-radius: 0 0.50rem 0.50rem 0;
         margin-right: 10px;
     }
 
-    html[dir='rtl'] .searh-field .el-tag-value {
+    html[dir='rtl'] .search-field .el-tag-value {
         border-radius: 0.5rem 0 0 0.5rem;
         margin-left: 10px;
     }
 
-    html[dir='rtl'] .searh-field .el-tag-operator {
+    html[dir='rtl'] .search-field .el-tag-operator {
         border-radius: 0;
     }
 
-    .searh-field .el-select.input-new-tag {
+    .search-field .el-select.input-new-tag {
         width: 100%;
     }
 
-    .searh-field .btn-helptext {
-        margin-left: auto;
+    .search-field .btn-helptext {
+        margin-inline-start: auto;
         color: var(--gray);
     }
 
-    .searh-field .btn:not(:disabled):not(.disabled):active:focus,
-    .searh-field .btn:not(:disabled):not(.disabled).active:focus {
+    .search-field .btn:not(:disabled):not(.disabled):active:focus,
+    .search-field .btn:not(:disabled):not(.disabled).active:focus {
         -webkit-box-shadow: none !important;
         box-shadow: none !important;
     }
 
-    .searh-field .form-control.datepicker.flatpickr-input {
+    .search-field .form-control.datepicker.flatpickr-input {
         padding: inherit !important;
     }
 
-    .searh-field .dropdown-menu.operator {
+    .search-field .dropdown-menu.operator {
         min-width: 50px !important;
     }
 
-    .searh-field .dropdown-menu.operator .btn i:not(:last-child), .btn svg:not(:last-child) {
+    html[dir='ltr'] .search-field .dropdown-menu.operator .btn i:not(:last-child),
+    html[dir='ltr'] .btn svg:not(:last-child) {
         margin-right: inherit !important;
+    }
+
+    html[dir='rtl'] .search-field .dropdown-menu.operator .btn i:not(:last-child),
+    html[dir='rtl'] .btn svg:not(:last-child) {
+        margin-left: inherit !important;
     }
 
     .dropdown-menu {

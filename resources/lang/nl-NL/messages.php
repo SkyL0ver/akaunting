@@ -4,7 +4,7 @@ return [
 
     'success' => [
         'added'             => ':type toegevoegd!',
-        'created'			=> ':type bijgewerkt!',
+        'created'            => ':type bijgewerkt!',
         'updated'           => ':type bijgewerkt!',
         'deleted'           => ':type verwijderd!',
         'duplicated'        => ':type gedupliceerd!',
@@ -12,6 +12,7 @@ return [
         'import_queued'     => ':type import is ingepland! U ontvangt een e-mail wanneer het klaar is.',
         'exported'          => ':type geëxporteerd!',
         'export_queued'     => ':type export van de huidige pagina is ingepland! U ontvangt een e-mail wanneer deze klaar is om te downloaden.',
+        'download_queued'   => ':type download van de huidige pagina is gepland! U ontvangt een e-mail wanneer de pagina kan worden gedownload.',
         'enabled'           => ':type ingeschakeld!',
         'disabled'          => ':type uitgeschakeld!',
         'connected'         => ':type verbonden!',
@@ -45,6 +46,7 @@ return [
         'disable_code'      => 'Waarschuwing: U mag <b>:name</b> niet uitschakelen omdat het gerelateerd is aan :text.',
         'payment_cancel'    => 'U heeft uw recente :method betaling geannuleerd!',
         'missing_transfer'  => 'Waarschuwing: De overdracht met betrekking tot deze transactie ontbreekt. Je kunt overwegen deze transactie te verwijderen.',
+        'connect_tax'       => 'Waarschuwing: Dit :type heeft een BTW-bedrag. Belastingen toegevoegd aan het :type kunnen niet worden verbonden, dus de belasting zal worden toegevoegd aan het totaal en zal overeenkomstig worden berekend.',
     ],
 
 ];

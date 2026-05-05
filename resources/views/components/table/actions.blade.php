@@ -31,7 +31,7 @@
                                 {{ $action['icon'] }}
                             </span>
 
-                            <div class="inline-block absolute invisible z-20 py-1 px-2 text-sm font-medium text-gray-900 bg-white rounded-lg border border-gray-200 shadow-sm whitespace-nowrap opacity-0 -top-10 -left-2 group-hover/tooltip:opacity-100 group-hover/tooltip:visible" data-tooltip-placement="top">
+                            <div class="inline-block absolute invisible z-20 py-1 px-2 text-sm font-medium text-gray-900 bg-white rounded-lg border border-gray-200 shadow-sm whitespace-nowrap opacity-0 -top-10 ltr:-left-2 rtl:-right-2 group-hover/tooltip:opacity-100 group-hover/tooltip:visible" data-tooltip-placement="top">
                                 <span>{{ $action['title'] }}</span>
                                 <div class="absolute w-2 h-2 -bottom-1 before:content-[' '] before:absolute before:w-2 before:h-2 before:bg-white before:border-gray-200 before:transform before:rotate-45 before:border before:border-t-0 before:border-l-0" data-popper-arrow></div>
                             </div>
@@ -42,11 +42,13 @@
                         @php
                             $text = $action['text'] ?? null;
                             $title = $action['title'] ?? null;
+                            $route = $action['route'] ?? null;
+                            $url = $action['url'] ?? null;
                             $modelId = ! empty($action['model-id']) ? $action['model-id'] : 'id';
                             $modelName = ! empty($action['model-name']) ? $action['model-name'] : 'name';
                         @endphp
 
-                        <x-delete-button :model="$action['model']" :route="$action['route']" :title="$title" :text="$text" :model-id="$modelId" :model-name="$modelName" />
+                        <x-delete-button :model="$action['model']" :route="$route" :url="$url" :title="$title" :text="$text" :model-id="$modelId" :model-name="$modelName" />
                         @break
 
                     @default
@@ -55,7 +57,7 @@
                                 {{ $action['icon'] }}
                             </span>
 
-                            <div class="inline-block absolute invisible z-20 py-1 px-2 text-sm font-medium text-gray-900 bg-white rounded-lg border border-gray-200 shadow-sm whitespace-nowrap opacity-0 -top-10 -left-2 group-hover/tooltip:opacity-100 group-hover/tooltip:visible" data-tooltip-placement="top">
+                            <div class="inline-block absolute invisible z-20 py-1 px-2 text-sm font-medium text-gray-900 bg-white rounded-lg border border-gray-200 shadow-sm whitespace-nowrap opacity-0 -top-10 ltr:-left-2 rtl:-right-2 group-hover/tooltip:opacity-100 group-hover/tooltip:visible" data-tooltip-placement="top">
                                 <span>{{ $action['title'] }}</span>
                                 <div class="absolute w-2 h-2 -bottom-1 before:content-[' '] before:absolute before:w-2 before:h-2 before:bg-white before:border-gray-200 before:transform before:rotate-45 before:border before:border-t-0 before:border-l-0" data-popper-arrow></div>
                             </div>
@@ -83,9 +85,9 @@
             @php $divider = false; @endphp
 
             <div class="relative bg-white hover:bg-gray-100 border py-0.5 px-1 cursor-pointer index-actions">
-                <button type="button" data-dropdown-toggle="dropdown-actions-{{ $model->id }}-{{ $loop->index }}" data-dropdown-placement="left" class="material-icons-outlined text-purple text-lg">more_horiz</button>
+                <button type="button" data-dropdown-toggle="dropdown-actions-{{ $model->id }}-{{ $loop->index }}" data-dropdown-placement="{{ language()->direction() === 'rtl' ? 'right' : 'left' }}" class="material-icons-outlined text-purple text-lg">more_horiz</button>
 
-                <div id="dropdown-actions-{{ $model->id }}-{{ $loop->index }}" data-dropdown-actions class="absolute py-2 bg-white rounded-md border border-gray-200 shadow-xl z-20 hidden !mt-[50px]" style="left:auto; min-width:10rem;">    
+                <div id="dropdown-actions-{{ $model->id }}-{{ $loop->index }}" data-dropdown-actions class="absolute py-2 bg-white rounded-md border border-gray-200 shadow-xl z-20 hidden !mt-[50px]" style="{{ language()->direction() === 'rtl' ? 'right' : 'left' }}:auto; min-width:10rem;">
                     @foreach ($more_actions as $action)
                         @php
                             $type = ! empty($action['type']) ? $action['type'] : 'link';

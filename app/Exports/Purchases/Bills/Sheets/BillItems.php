@@ -4,8 +4,9 @@ namespace App\Exports\Purchases\Bills\Sheets;
 
 use App\Abstracts\Export;
 use App\Models\Document\DocumentItem as Model;
+use App\Interfaces\Export\WithParentSheet;
 
-class BillItems extends Export
+class BillItems extends Export implements WithParentSheet
 {
     public function collection()
     {
@@ -36,6 +37,8 @@ class BillItems extends Export
             'item_description',
             'item_type',
             'quantity',
+            'discount_type',
+            'discount_rate',
             'price',
             'total',
             'tax',

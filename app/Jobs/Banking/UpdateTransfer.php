@@ -16,6 +16,8 @@ class UpdateTransfer extends Job implements ShouldUpdate
 
     public function handle(): Transfer
     {
+        $this->authorize();
+
         \DB::transaction(function () {
             // Upload attachment
             if ($this->request->file('attachment')) {
@@ -26,7 +28,9 @@ class UpdateTransfer extends Job implements ShouldUpdate
 
                     $this->model->attachMedia($media, 'attachment');
                 }
-            } elseif (! $this->request->file('attachment') && $this->model->attachment) {
+            } elseif ($this->request->isNotApi() && ! $this->request->file('attachment') && $this->model->attachment) {
+                $this->deleteMediaModel($this->model, 'attachment', $this->request);
+            } elseif ($this->request->isApi() && $this->request->has('remove_attachment') && $this->model->attachment) {
                 $this->deleteMediaModel($this->model, 'attachment', $this->request);
             }
 
@@ -84,6 +88,17 @@ class UpdateTransfer extends Job implements ShouldUpdate
         });
 
         return $this->model;
+    }
+
+    public function authorize(): void
+    {
+        foreach (['from', 'to'] as $type) {
+            $account_id = $this->request->get($type . '_account_id');
+
+            if (empty($account_id) || ! Account::find($account_id)) {
+                throw new \Exception(trans('messages.error.not_found', ['type' => trans_choice('general.accounts', 1)]));
+            }
+        }
     }
 
     protected function getCurrencyCode($type)

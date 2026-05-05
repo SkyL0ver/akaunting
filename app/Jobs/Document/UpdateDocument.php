@@ -18,13 +18,21 @@ class UpdateDocument extends Job implements ShouldUpdate
 
     public function handle(): Document
     {
+        $this->authorize();
+
         if (empty($this->request['amount'])) {
             $this->request['amount'] = 0;
         }
 
+        // Disable this lines for global discount issue fixed ( https://github.com/akaunting/akaunting/issues/2797 )
+        $this->request['discount_rate'] = $this->request['discount'] ?? null;
+
         event(new DocumentUpdating($this->model, $this->request));
 
-        \DB::transaction(function () {
+        // Track original contact_id to sync transactions if it changes
+        $originalContactId = $this->model->contact_id;
+
+        \DB::transaction(function () use ($originalContactId) {
             // Upload attachment
             if ($this->request->file('attachment')) {
                 $this->deleteMediaModel($this->model, 'attachment', $this->request);
@@ -34,7 +42,9 @@ class UpdateDocument extends Job implements ShouldUpdate
 
                     $this->model->attachMedia($media, 'attachment');
                 }
-            } elseif (! $this->request->file('attachment') && $this->model->attachment) {
+            } elseif ($this->request->isNotApi() && ! $this->request->file('attachment') && $this->model->attachment) {
+                $this->deleteMediaModel($this->model, 'attachment', $this->request);
+            } elseif ($this->request->isApi() && $this->request->has('remove_attachment') && $this->model->attachment) {
                 $this->deleteMediaModel($this->model, 'attachment', $this->request);
             }
 
@@ -61,11 +71,43 @@ class UpdateDocument extends Job implements ShouldUpdate
 
             $this->model->update($this->request->all());
 
+            // Sync transaction contact_id if document contact changed (skip reconciled transactions)
+            if (isset($this->request['contact_id']) && $originalContactId != $this->request['contact_id']) {
+                $this->model->transactions()->where('reconciled', 0)->update([
+                    'contact_id' => $this->request['contact_id'],
+                ]);
+            }
+
             $this->model->updateRecurring($this->request->all());
         });
 
         event(new DocumentUpdated($this->model, $this->request));
 
         return $this->model;
+    }
+
+    /**
+     * Determine if this action is applicable.
+     */
+    public function authorize(): void
+    {
+        if (
+            isset($this->request['contact_id']) &&
+            (int) $this->request['contact_id'] !== (int) $this->model->contact_id
+        ) {
+            $lockedStatuses = ['sent', 'received', 'viewed', 'partial', 'paid', 'overdue', 'unpaid', 'cancelled'];
+
+            if (in_array($this->model->status, $lockedStatuses)) {
+                $type = Str::plural($this->model->type);
+                $message = trans('messages.warning.contact_change', ['type' => trans_choice("general.$type", 1)]);
+
+                throw new \Exception($message);
+            } else if ($this->model->transactions()->isReconciled()->exists()) {
+                $type = Str::plural($this->model->type);
+                $message = trans('messages.warning.reconciled_doc', ['type' => trans_choice("general.$type", 1)]);
+
+                throw new \Exception($message);
+            }
+        }
     }
 }

@@ -4,10 +4,13 @@ namespace App\Models\Setting;
 
 use App\Abstracts\Model;
 use App\Builders\Category as Builder;
+use App\Models\Banking\Transaction;
 use App\Models\Document\Document;
+use App\Interfaces\Export\WithParentSheet;
 use App\Relations\HasMany\Category as HasMany;
 use App\Scopes\Category as Scope;
 use App\Traits\Categories;
+use App\Traits\DateTime;
 use App\Traits\Tailwind;
 use App\Traits\Transactions;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
@@ -16,30 +19,31 @@ use Illuminate\Database\Eloquent\Model as EloquentModel;
 
 class Category extends Model
 {
-    use Categories, HasFactory, Tailwind, Transactions;
+    use Categories, HasFactory, Tailwind, Transactions, DateTime;
 
     public const INCOME_TYPE = 'income';
     public const EXPENSE_TYPE = 'expense';
+    public const COGS_TYPE = 'cogs';
     public const ITEM_TYPE = 'item';
     public const OTHER_TYPE = 'other';
 
     protected $table = 'categories';
 
-    protected $appends = ['display_name'];
+    protected $appends = ['display_name', 'color_hex_code'];
 
     /**
      * Attributes that should be mass-assignable.
      *
      * @var array
      */
-    protected $fillable = ['company_id', 'name', 'type', 'color', 'enabled', 'created_from', 'created_by', 'parent_id'];
+    protected $fillable = ['company_id', 'code', 'name', 'type', 'color', 'description', 'enabled', 'created_from', 'created_by', 'parent_id'];
 
     /**
      * Sortable columns.
      *
      * @var array
      */
-    public $sortable = ['name', 'type', 'enabled'];
+    public $sortable = ['code', 'name', 'type', 'enabled'];
 
     /**
      * The "booted" method of the model.
@@ -137,6 +141,18 @@ class Category extends Model
     }
 
     /**
+     * Scope code.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param $code
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeCode($query, $code)
+    {
+        return $query->where('code', $code);
+    }
+
+    /**
      * Scope to only include categories of a given type.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -154,46 +170,62 @@ class Category extends Model
 
     /**
      * Scope to include only income.
+     * Uses Categories trait to support multiple income types (e.g. from modules).
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeIncome($query)
     {
-        return $query->where($this->qualifyColumn('type'), '=', 'income');
+        return $query->whereIn($this->qualifyColumn('type'), $this->getIncomeCategoryTypes());
     }
 
     /**
      * Scope to include only expense.
+     * Uses Categories trait to support multiple expense types (e.g. from modules).
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeExpense($query)
     {
-        return $query->where($this->qualifyColumn('type'), '=', 'expense');
+        return $query->whereIn($this->qualifyColumn('type'), $this->getExpenseCategoryTypes());
+    }
+
+    /**
+     * Scope to include only COGS.
+     * Uses Categories trait to support multiple COGS types (e.g. from modules).
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeCogs($query)
+    {
+        return $query->whereIn($this->qualifyColumn('type'), $this->getCogsCategoryTypes());
     }
 
     /**
      * Scope to include only item.
+     * Uses Categories trait to support multiple item types (e.g. from modules).
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeItem($query)
     {
-        return $query->where($this->qualifyColumn('type'), '=', 'item');
+        return $query->whereIn($this->qualifyColumn('type'), $this->getItemCategoryTypes());
     }
 
     /**
      * Scope to include only other.
+     * Uses Categories trait to support multiple other types (e.g. from modules).
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
      * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeOther($query)
     {
-        return $query->where($this->qualifyColumn('type'), '=', 'other');
+        return $query->whereIn($this->qualifyColumn('type'), $this->getOtherCategoryTypes());
     }
 
     public function scopeName($query, $name)
@@ -210,6 +242,17 @@ class Category extends Model
     public function scopeWithSubCategory($query)
     {
         return $query->withoutGlobalScope(new Scope);
+    }
+
+    /**
+     * Scope gets only parent categories.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeIsNotSubCategory($query)
+    {
+        return $query->whereNull('parent_id');
     }
 
     /**
@@ -232,7 +275,7 @@ class Category extends Model
 
         $search = $request->get('search');
 
-        $query->withSubcategory();
+        $query->withSubCategory();
 
         $query->usingSearchString($search)->sortable($sort);
 
@@ -240,7 +283,9 @@ class Category extends Model
         $limit = (int) $request->get('limit', setting('default.list_limit', '25'));
         $offset = $page ? ($page - 1) * $limit : 0;
 
-        $query->offset($offset)->limit($limit);
+        if (! $this instanceof WithParentSheet && count((array) $ids) < $limit) {
+            $query->offset($offset)->limit($limit);
+        }
 
         return $query->cursor();
     }
@@ -250,15 +295,99 @@ class Category extends Model
      */
     public function getColorHexCodeAttribute(): string
     {
-        return $this->getHexCodeOfTailwindClass($this->color);
+        $color = $this->color ?? 'green-500';
+
+        return $this->getHexCodeOfTailwindClass($color);
     }
 
     /**
      * Get the display name of the category.
      */
-    public function getDisplayNameAttribute()
+    public function getDisplayNameAttribute(): string
     {
-        return $this->name . ' (' . ucfirst($this->type) . ')';
+        $hideCode = $this->hideCodeCategoryType($this->type);
+        $typeNames = $this->getCategoryTypes();
+
+        $typeName = $typeNames[$this->type] ?? ucfirst($this->type);
+
+        $prefix = (!$hideCode && $this->code) ? $this->code . ' - ' : '';
+
+        return $prefix . $this->name . ' (' . $typeName . ')';
+    }
+
+    /**
+     * Get the balance of a category.
+     *
+     * @return double
+     */
+    public function getBalanceAttribute()
+    {
+        // If view composer has set the balance, return it directly
+        if (isset($this->de_balance)) {
+            return $this->de_balance;
+        }
+
+        $financial_year = $this->getFinancialYear();
+
+        $start_date = $financial_year->getStartDate();
+        $end_date = $financial_year->getEndDate();
+
+        $this->transactions->whereBetween('paid_at', [$start_date, $end_date])
+            ->each(function ($transaction) use (&$incomes, &$expenses) {
+                if (($transaction->isNotIncome() && $transaction->isNotExpense()) || $transaction->isTransferTransaction()) {
+                    return;
+                }
+
+                if ($transaction->isIncome()) {
+                    $incomes += $transaction->getAmountConvertedToDefault();
+                } else {
+                    $expenses += $transaction->getAmountConvertedToDefault();
+                }
+            });
+
+        $balance = $incomes - $expenses;
+
+        $this->sub_categories()
+            ->each(function ($sub_category) use (&$balance) {
+                $balance += $sub_category->balance;
+            });
+
+        return $balance;
+    }
+
+    /**
+     * Get the balance of a category without considering sub categories.
+     *
+     * @return double
+     */
+    public function getBalanceWithoutSubcategoriesAttribute()
+    {
+        // If view composer has set the balance, return it directly
+        if (isset($this->without_subcategory_de_balance)) {
+            return $this->without_subcategory_de_balance;
+        }
+
+        $financial_year = $this->getFinancialYear();
+
+        $start_date = $financial_year->getStartDate();
+        $end_date = $financial_year->getEndDate();
+
+        $this->transactions->whereBetween('paid_at', [$start_date, $end_date])
+            ->each(function ($transaction) use (&$incomes, &$expenses) {
+                if (($transaction->isNotIncome() && $transaction->isNotExpense()) || $transaction->isTransferTransaction()) {
+                    return;
+                }
+
+                if ($transaction->isIncome()) {
+                    $incomes += $transaction->getAmountConvertedToDefault();
+                } else {
+                    $expenses += $transaction->getAmountConvertedToDefault();
+                }
+            });
+
+        $balance = $incomes - $expenses;
+
+        return $balance;
     }
 
     /**
@@ -296,6 +425,19 @@ class Category extends Model
         ];
 
         return $actions;
+    }
+
+    /**
+     * A no-op callback that gets fired when a model is cloning but before it gets
+     * committed to the database
+     *
+     * @param  Illuminate\Database\Eloquent\Model $src
+     * @param  boolean $child
+     * @return void
+     */
+    public function onCloning($src, $child = null)
+    {
+        $this->code = $this->getNextCategoryCode();
     }
 
     /**

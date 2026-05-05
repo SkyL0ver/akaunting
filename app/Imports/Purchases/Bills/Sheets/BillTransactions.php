@@ -5,13 +5,25 @@ namespace App\Imports\Purchases\Bills\Sheets;
 use App\Abstracts\Import;
 use App\Http\Requests\Banking\Transaction as Request;
 use App\Models\Banking\Transaction as Model;
+use App\Models\Setting\Category;
 
 class BillTransactions extends Import
 {
     public $request_class = Request::class;
 
+    public $model = Model::class;
+
+    public $columns = [
+        'type',
+        'number',
+    ];
+
     public function model(array $row)
     {
+        if (self::hasRow($row)) {
+            return;
+        }
+        
         return new Model($row);
     }
 
@@ -25,9 +37,9 @@ class BillTransactions extends Import
 
         $row = parent::map($row);
 
-        $row['type'] = 'expense';
+        $row['type'] = Model::EXPENSE_TYPE;
         $row['account_id'] = $this->getAccountId($row);
-        $row['category_id'] = $this->getCategoryId($row, 'expense');
+        $row['category_id'] = $this->getCategoryId($row, Category::EXPENSE_TYPE);
         $row['contact_id'] = $this->getContactId($row, 'vendor');
         $row['currency_code'] = $this->getCurrencyCode($row);
         $row['document_id'] = $this->getDocumentId($row);

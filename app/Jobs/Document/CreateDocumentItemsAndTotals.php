@@ -70,7 +70,8 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
 
         if (! empty($this->request['discount'])) {
             if ($this->request['discount_type'] === 'percentage') {
-                $discount_total = ($sub_total - $discount_amount_total) * ($this->request['discount'] / 100);
+                //$discount_total = ($sub_total - $discount_amount_total) * ($this->request['discount'] / 100);
+                $discount_total = $sub_total * ($this->request['discount'] / 100);
             } else {
                 $discount_total = $this->request['discount'];
             }
@@ -173,16 +174,18 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
         foreach ((array) $this->request['items'] as $key => $item) {
             $item['global_discount'] = 0;
 
+            // Disable this lines for global discount issue fixed ( https://github.com/akaunting/akaunting/issues/2797 )
             if (! empty($this->request['discount'])) {
                 if (isset($for_fixed_discount)) {
                     $item['global_discount'] = ($for_fixed_discount[$key] / ($for_fixed_discount['total'] / 100)) * ($this->request['discount'] / 100);
-                    $item['global_discount_type'] = '';
+                    $item['global_discount_type'] = $this->request['discount_type'];
                 } else {
                     $item['global_discount'] = $this->request['discount'];
                     $item['global_discount_type'] = $this->request['discount_type'];
                 }
             }
 
+            $item['category_id'] = ! empty($item['category_id']) ? $item['category_id'] : $this->request['category_id'];
             $item['created_from'] = $this->request['created_from'];
             $item['created_by'] = $this->request['created_by'];
 
@@ -193,6 +196,7 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
                     'description' => $item['description'],
                     'sale_price' => $item['price'],
                     'purchase_price' => $item['price'],
+                    'category_id' => $item['category_id'],
                     'created_from' => $item['created_from'],
                     'created_by' => $item['created_by'],
                     'enabled' => '1',
@@ -209,7 +213,9 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
 
             $document_item = $this->dispatch(new CreateDocumentItem($this->document, $item));
 
-            $item_amount = (double) $item['price'] * (double) $item['quantity'];
+            # This line changed for discount calculator issue
+            //$item_amount = (double) $item['price'] * (double) $item['quantity'];
+            $item_amount = $document_item->total;
 
             $discount_amount = 0;
 
@@ -234,13 +240,22 @@ class CreateDocumentItemsAndTotals extends Job implements HasOwner, HasSource, S
             // Set taxes
             foreach ((array) $document_item->item_taxes as $item_tax) {
                 if (array_key_exists($item_tax['tax_id'], $taxes)) {
-                    $taxes[$item_tax['tax_id']]['amount'] += $item_tax['amount'];
+                    $taxes[$item_tax['tax_id']]['amount'] += round((float) $item_tax['amount'], $this->document->currency->precision);
                 } else {
                     $taxes[$item_tax['tax_id']] = [
                         'name' => $item_tax['name'],
-                        'amount' => $item_tax['amount'],
+                        'amount' => round((float) $item_tax['amount'], $this->document->currency->precision),
                     ];
                 }
+            }
+        }
+
+        // Disable this lines for global discount issue fixed ( https://github.com/akaunting/akaunting/issues/2797 )
+        if (! empty($this->request['discount'])) {
+            if ($this->request['discount_type'] === 'percentage') {
+                $actual_total -= ($sub_total * ($this->request['discount'] / 100));
+            } else {
+                $actual_total -= $this->request['discount'];
             }
         }
 

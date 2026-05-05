@@ -2,10 +2,11 @@
 
 use App\Models\Common\Contact;
 use App\Models\Banking\Transaction;
+use App\Models\Setting\Category;
 
 return [
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | Enable / Disable auto save
     |--------------------------------------------------------------------------
@@ -13,7 +14,7 @@ return [
     | Auto-save every time the application shuts down
     |
     */
-	'auto_save'			=> env('SETTING_AUTO_SAVE', false),
+    'auto_save'            => env('SETTING_AUTO_SAVE', false),
 
     /*
     |--------------------------------------------------------------------------
@@ -31,7 +32,7 @@ return [
         'auto_clear'    => env('SETTING_CACHE_AUTO_CLEAR', true),
     ],
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | Setting driver
     |--------------------------------------------------------------------------
@@ -41,9 +42,9 @@ return [
     | Supported: "database", "json"
     |
     */
-	'driver'			=> env('SETTING_DRIVER', 'database'),
+    'driver'            => env('SETTING_DRIVER', 'database'),
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | Database driver
     |--------------------------------------------------------------------------
@@ -52,14 +53,14 @@ return [
     | the default connection. Set the table and column names.
     |
     */
-	'database' => [
-		'connection'    => env('SETTING_DATABASE_CONNECTION', null),
-		'table'         => env('SETTING_DATABASE_TABLE', 'settings'),
-		'key'           => env('SETTING_DATABASE_KEY', 'key'),
-		'value'         => env('SETTING_DATABASE_VALUE', 'value'),
-	],
+    'database' => [
+        'connection'    => env('SETTING_DATABASE_CONNECTION', null),
+        'table'         => env('SETTING_DATABASE_TABLE', 'settings'),
+        'key'           => env('SETTING_DATABASE_KEY', 'key'),
+        'value'         => env('SETTING_DATABASE_VALUE', 'value'),
+    ],
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | JSON driver
     |--------------------------------------------------------------------------
@@ -67,11 +68,11 @@ return [
     | Options for json driver. Enter the full path to the .json file.
     |
     */
-	'json' => [
-		'path'          => env('SETTING_JSON_PATH', storage_path('settings.json')),
-	],
+    'json' => [
+        'path'          => env('SETTING_JSON_PATH', storage_path('settings.json')),
+    ],
 
-	/*
+    /*
     |--------------------------------------------------------------------------
     | Override application config values
     |--------------------------------------------------------------------------
@@ -83,9 +84,9 @@ return [
     |   "app.locale" => "settings.locale",
     |
     */
-	'override' => [
+    'override' => [
 
-	],
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -155,6 +156,7 @@ return [
             'list_limit'                => env('SETTING_FALLBACK_DEFAULT_LIST_LIMIT', '25'),
             'payment_method'            => env('SETTING_FALLBACK_DEFAULT_PAYMENT_METHOD', 'offline-payments.cash.1'),
             'select_limit'              => env('SETTING_FALLBACK_DEFAULT_SELECT_LIMIT', '10'),
+            'address_format'            => env('SETTING_FALLBACK_DEFAULT_ADDRESS_FORMAT', "{city}, {state} {zip_code} \n{country}"),
         ],
         'email' => [
             'protocol'                  => env('SETTING_FALLBACK_EMAIL_PROTOCOL', 'mail'),
@@ -166,6 +168,15 @@ return [
             'send_bill_reminder'        => env('SETTING_FALLBACK_SCHEDULE_SEND_BILL_REMINDER', '0'),
             'bill_days'                 => env('SETTING_FALLBACK_SCHEDULE_BILL_DAYS', '10,5,3,1'),
             'time'                      => env('SETTING_FALLBACK_SCHEDULE_TIME', '09:00'),
+        ],
+        'category' => [
+            'type' => [
+                'income'                => env('SETTING_FALLBACK_CATEGORY_TYPE_INCOME', Category::INCOME_TYPE),
+                'expense'               => env('SETTING_FALLBACK_CATEGORY_TYPE_EXPENSE', Category::EXPENSE_TYPE),
+                'cogs'                  => env('SETTING_FALLBACK_CATEGORY_TYPE_COGS', Category::COGS_TYPE),
+                'item'                  => env('SETTING_FALLBACK_CATEGORY_TYPE_ITEM', Category::ITEM_TYPE),
+                'other'                 => env('SETTING_FALLBACK_CATEGORY_TYPE_OTHER', Category::OTHER_TYPE),
+            ],
         ],
         'contact' => [
             'type' => [

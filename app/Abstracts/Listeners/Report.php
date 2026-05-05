@@ -5,34 +5,48 @@ namespace App\Abstracts\Listeners;
 use App\Models\Banking\Account;
 use App\Models\Common\Contact;
 use App\Models\Setting\Category;
+use App\Traits\Categories;
 use App\Traits\Contacts;
 use App\Traits\DateTime;
 use App\Traits\SearchString;
 
 abstract class Report
 {
-    use Contacts, DateTime, SearchString;
+    use Categories, Contacts, DateTime, SearchString;
 
     protected $classes = [];
 
     protected $events = [
-        'App\Events\Report\FilterShowing',
-        'App\Events\Report\FilterApplying',
-        'App\Events\Report\GroupShowing',
-        'App\Events\Report\GroupApplying',
-        'App\Events\Report\RowsShowing',
+        \App\Events\Report\FilterShowing::class,
+        \App\Events\Report\FilterApplying::class,
+        \App\Events\Report\GroupShowing::class,
+        \App\Events\Report\GroupApplying::class,
+        \App\Events\Report\RowsShowing::class,
     ];
+
+    // Prevent deprecated dynamic property warnings in PHP 8.2+ by explicitly declaring these properties
+    protected $class;
+    protected $group;
 
     public function skipThisClass($event)
     {
+        $fire_event = $event;
+
+        $this->fireEvent(\App\Events\Report\SkipClass::class, $fire_event);
+
         return (empty($event->class) || !in_array(get_class($event->class), $this->classes));
     }
 
     public function skipRowsShowing($event, $group)
     {
+        $fire_event = $event;
+        $fire_group = $group;
+
+        $this->fireEvent(\App\Events\Report\SkipRowsShowing::class, $fire_event, $fire_group);
+
         return $this->skipThisClass($event)
-                || empty($event->class->model->settings->group)
-                || ($event->class->model->settings->group != $group);
+                || empty($event->class->getGroup())
+                || ($event->class->getGroup() != $group);
     }
 
     public function setDateFilter($event)
@@ -81,22 +95,24 @@ abstract class Report
 
     public function getItemCategories($limit = false)
     {
-        return $this->getCategories('item', $limit);
+        return $this->getCategories($this->getItemCategoryTypes(), $limit);
     }
 
     public function getIncomeCategories($limit = false)
     {
-        return $this->getCategories('income', $limit);
+        return $this->getCategories($this->getIncomeCategoryTypes(), $limit);
     }
 
     public function getExpenseCategories($limit = false)
     {
-        return $this->getCategories('expense', $limit);
+        return $this->getCategories($this->getExpenseCategoryTypes(), $limit);
     }
 
     public function getIncomeExpenseCategories($limit = false)
     {
-        return $this->getCategories(['income', 'expense'], $limit);
+        $types = array_merge($this->getIncomeCategoryTypes(), $this->getExpenseAndCogsCategoryTypes());
+
+        return $this->getCategories($types, $limit);
     }
 
     public function getCategories($types, $limit = false)
@@ -120,9 +136,13 @@ abstract class Report
         return $this->getContacts($this->getVendorTypes(), $limit);
     }
 
-    public function getContacts($types, $limit = false)
+    public function getContacts($types = null, $limit = false)
     {
-        $model = Contact::type($types)->orderBy('name');
+        if ($types) {
+            $model = Contact::type($types)->orderBy('name');
+        } else {
+            $model = Contact::orderBy('name');
+        }
 
         if ($limit !== false) {
             $model->take(setting('default.select_limit'));
@@ -149,24 +169,45 @@ abstract class Report
         ];
     }
 
+    public function getDiscount()
+    {
+        return [
+            'item' => trans('settings.localisation.discount_location.item'),
+            'total' => trans('settings.localisation.discount_location.total'),
+            'both' => trans('settings.localisation.discount_location.both'),
+        ];
+    }
+
     public function applyDateFilter($event)
     {
         $event->model->dateFilter($event->args['date_field']);
     }
 
-    public function applySearchStringFilter($event)
+    public function applyDiscountFilter($event)
     {
         $input = request('search', '');
+        $discount = $this->getSearchStringValue('discount', 'both', $input);
 
-        // Remove basis as it's handled based on report itself
-        $search_basis = 'basis:' . $this->getSearchStringValue('basis', 'accrual', $input);
-        $input = str_replace($search_basis, '', $input);
+        switch ($discount) {
+            case 'item':
+                $discount_types = ['item_discount'];
+                break;
+            case 'total':
+                $discount_types = ['discount'];
+                break;
+            default:
+                $discount_types = ['item_discount', 'discount'];
+                break;
+        }
 
-        // Remove period as it's handled based on report itself
-        $search_period = 'period:' . $this->getSearchStringValue('period', 'quarterly', $input);
-        $input = str_replace($search_period, '', $input);
+        $event->model->whereHas('totals', function ($query) use ($discount_types) {
+            $query->whereIn('code', $discount_types);
+        });
+    }
 
-        $event->model->usingSearchString($input);
+    public function applySearchStringFilter($event)
+    {
+        $event->model->usingSearchString();
     }
 
     public function applyAccountGroup($event)
@@ -277,7 +318,24 @@ abstract class Report
 
     public function getFormattedDate($event, $date)
     {
-        return $this->getPeriodicDate($date, $event->class->getSetting('period'), $event->class->year);
+        $period = $this->getSearchStringValue('period');
+
+        if (empty($period)) {
+            $period = $event->class->getPeriod();
+        }
+
+        return $this->getPeriodicDate($date, $period, $event->class->year);
+    }
+
+    protected function fireEvent($event_class, $event, $group = null)
+    {
+        $this->class = $event->class;
+
+        if ($group) {
+            $this->group = $group;
+        }
+
+        event(new $event_class($this));
     }
 
     /**

@@ -1,7 +1,7 @@
 <div class="sm:col-span-6">
     <div class="mb-4 p-0">
         <div class="overflow-y-hidden py-6">
-            <table id="totals" class="float-right">
+            <table id="totals" class="ltr:float-right rtl:float-left">
                 <colgroup>
                     <col class="small-col" style="width: 47.5%;">
                     <col class="small-col" style="width: 30%;">
@@ -15,7 +15,7 @@
                     <tr id="tr-subtotal">
                         <td class="border-b-0 py-0"></td>
 
-                        <td class="font-medium ltr:text-right rtl:text-left border-r-0 border-b-0 align-middle pb-0 pr-0">
+                        <td class="font-medium ltr:text-right rtl:text-left ltr:border-r-0 rtl:border-l-0 border-b-0 align-middle pb-0 ltr:pr-0 rtl:pl-0">
                             {{ trans('invoices.sub_total') }}
                         </td>
 
@@ -46,11 +46,11 @@
                         <tr id="tr-line-discount" v-if="totals.item_discount">
                             <td class="border-t-0 py-0"></td>
 
-                            <td class="ltr:text-right rtl:text-left border-t-0 border-r-0 border-b-0 align-middle py-0 pr-0">
+                            <td class="ltr:text-right rtl:text-left border-t-0 ltr:border-r-0 rtl:border-l-0 border-b-0 align-middle py-0 ltr:pr-0 rtl:pl-0">
                                 <span class="font-medium">{{ trans('invoices.item_discount') }}</span>
                             </td>
 
-                            <td class="ltr:text-right rtl:text-left border-t-0 border-b-0 long-texts py-0 pr-0">
+                            <td class="ltr:text-right rtl:text-left border-t-0 border-b-0 long-texts py-0 ltr:pr-0 rtl:pl-0">
                                 <div>
                                     <x-form.input.money
                                         name="item_discount"
@@ -78,8 +78,8 @@
                         <tr id="tr-discount">
                             <td class="border-t-0 py-0"></td>
 
-                            <td class="ltr:text-right rtl:text-left border-t-0 border-r-0 border-b-0 align-middle py-0 pr-0">
-                                <div v-if="show_discount_text" v-if="!totals.discount_text" @click="onAddDiscount()">
+                            <td class="ltr:text-right rtl:text-left border-t-0 ltr:border-r-0 rtl:border-l-0 border-b-0 align-middle py-0 ltr:pr-0 rtl:pl-0">
+                                <div v-if="show_discount_text" @click="onAddDiscount()">
                                     <x-button.hover color="to-purple">
                                         {{ trans('invoices.add_discount') }}
                                     </x-button.hover>
@@ -110,7 +110,7 @@
                                 </div>
                             </td>
 
-                            <td class="relative ltr:text-right rtl:text-left border-t-0 border-b-0 py-0 pr-0">
+                            <td class="relative ltr:text-right rtl:text-left border-t-0 border-b-0 py-0 ltr:pr-0 rtl:pl-0">
                                 <div>
                                     <x-form.input.money
                                         name="discount_total"
@@ -125,7 +125,8 @@
                                     />
                                 </div>
 
-                                <x-form.input.hidden name="discount" v-model="form.discount" />
+                                <x-form.input.hidden name="discount_type" value="{{ $document->discount_type ?? 'percentage' }}" v-model="form.discount_type" />
+                                <x-form.input.hidden name="discount" value="{{ $document->discount_rate ?? 0 }}" v-model="form.discount" />
 
                                 <span v-if="delete_discount" @click="onRemoveDiscountArea()" class="material-icons-outlined absolute w-6 h-7 flex justify-center ltr:-right-10 rtl:-left-10 top-2 text-lg text-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 hover:text-gray-500">delete</span>
                             </td>
@@ -141,11 +142,11 @@
                     <tr v-for="(tax, tax_index) in totals.taxes" :index="tax_index">
                         <td class="border-t-0 pt-5 pb-0"></td>
 
-                        <td class="ltr:text-right rtl:text-left border-t-0  border-r-0 border-b-0 align-middle pt-5 pb-0 pr-0">
+                        <td class="ltr:text-right rtl:text-left border-t-0 ltr:border-r-0 rtl:border-l-0 border-b-0 align-middle pt-5 pb-0 ltr:pr-0 rtl:pl-0">
                             <span class="font-medium" v-html="tax.name"></span>
                         </td>
 
-                        <td class="ltr:text-right rtl:text-left border-t-0 border-b-0 long-texts pt-5 pb-0 pl-3">
+                        <td class="ltr:text-right rtl:text-left border-t-0 border-b-0 long-texts pt-5 pb-0 ltr:pl-3 rtl:pr-3">
                             <div>
                                 <x-form.input.money
                                     name="tax_total"
@@ -195,7 +196,7 @@
                             <x-form.input.hidden name="currency_rate" :value="(!empty($document)) ? $document->currency_rate : $currency->rate" />
                         </td>
 
-                        <td class="ltr:text-right rtl:text-left border-t-0 long-texts pt-5 pb-0 pr-0">
+                        <td class="ltr:text-right rtl:text-left border-t-0 long-texts pt-5 pb-0 ltr:pr-0 rtl:pl-0">
                             <div>
                                 <x-form.input.money
                                     name="grand_total"
@@ -224,11 +225,11 @@
                     ]">
                         <td class="border-t-0 pt-5 pb-0"></td>
 
-                        <td colspan="2" class="ltr:text-right rtl:text-left border-t-0 border-r-0 align-middle pt-5 pb-0 pr-0">
+                        <td colspan="2" class="ltr:text-right rtl:text-left border-t-0 ltr:border-r-0 rtl:border-l-0 align-middle pt-5 pb-0 ltr:pr-0 rtl:pl-0">
                             <akaunting-currency-conversion
                                 currency-conversion-text="{{ trans('currencies.conversion') }}"
                                 :price="(totals.total / form.currency_rate).toFixed(2)"
-                                :currecy-code="form.currency_code"
+                                :currency-code="form.currency_code"
                                 :currency-rate="form.currency_rate"
                                 :currency-symbol="currency_symbol"
                                 @change="form.currency_rate = $event"

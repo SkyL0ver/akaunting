@@ -79,10 +79,14 @@ return [
         'subheading'                    => 'Subheading',
         'due_receipt'                   => 'Due upon receipt',
         'due_days'                      => 'Due within :days days',
+        'due_custom'                    => 'Custom day(s)',
+        'due_custom_day'                => 'after day',
         'choose_template'               => 'Choose invoice template',
         'default'                       => 'Default',
         'classic'                       => 'Classic',
         'modern'                        => 'Modern',
+        'logo_size_width'               => 'Logo Width',
+        'logo_size_height'              => 'Logo Height',
         'hide' => [
             'item_name'                 => 'Hide Item Name',
             'item_description'          => 'Hide Item Description',
@@ -113,6 +117,8 @@ return [
         'use_gravatar'                  => 'Use Gravatar',
         'income_category'               => 'Income Category',
         'expense_category'              => 'Expense Category',
+        'address_format'                => 'Address Format',
+        'address_tags'                  => '<strong>Available Tags:</strong> :tags',
 
         'form_description' => [
             'general'                   => 'Select the default account, tax, and payment method to create records swiftly. Dashboard and Reports are shown under the default currency.',

@@ -48,7 +48,7 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col text-black text-sm font-medium ml-2 sm:ml-4">
+                    <div class="flex flex-col text-black text-sm font-medium ltr:ml-2 rtl:mr-2 sm:ltr:ml-4 sm:rtl:mr-4">
                         <span>@{{ option.option.name }}</span>
                         <span>@{{ option.option.email }}</span>
                     </div>
@@ -56,7 +56,7 @@
             </template>
         @endif
     </x-form.group.select>
-@elseif (($attributes->has('withoutRemote') && $attributes->has('without-remote')) && (! $attributes->has('withoutAddNew') && ! $attributes->has('without-add-new')))
+@elseif (($attributes->has('withoutRemote') || $attributes->has('without-remote')) && (! $attributes->has('withoutAddNew') && ! $attributes->has('without-add-new')))
     <x-form.group.select
         add-new
         path="{{ $path }}"
@@ -103,7 +103,7 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col text-black text-sm font-medium ml-2 sm:ml-4">
+                    <div class="flex flex-col text-black text-sm font-medium ltr:ml-2 rtl:mr-2 sm:ltr:ml-4 sm:rtl:mr-4">
                         <span>@{{ option.option.name }}</span>
                         <span>@{{ option.option.email }}</span>
                     </div>
@@ -111,7 +111,7 @@
             </template>
         @endif
     </x-form.group.select>
-@elseif ((! $attributes->has('withoutRemote') && ! $attributes->has('without-remote')) && ($attributes->has('withoutAddNew') && $attributes->has('without-add-new')))
+@elseif ((! $attributes->has('withoutRemote') && ! $attributes->has('without-remote')) && ($attributes->has('withoutAddNew') || $attributes->has('without-add-new')))
     <x-form.group.select
         remote
         remote_action="{{ $remoteAction }}"
@@ -158,7 +158,7 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col text-black text-sm font-medium ml-2 sm:ml-4">
+                    <div class="flex flex-col text-black text-sm font-medium ltr:ml-2 rtl:mr-2 sm:ltr:ml-4 sm:rtl:mr-4">
                         <span>@{{ option.option.name }}</span>
                         <span>@{{ option.option.email }}</span>
                     </div>
@@ -210,7 +210,7 @@
                         </span>
                     </div>
 
-                    <div class="flex flex-col text-black text-sm font-medium ml-2 sm:ml-4">
+                    <div class="flex flex-col text-black text-sm font-medium ltr:ml-2 rtl:mr-2 sm:ltr:ml-4 sm:rtl:mr-4">
                         <span>@{{ option.option.name }}</span>
                         <span>@{{ option.option.email }}</span>
                     </div>
